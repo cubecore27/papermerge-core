@@ -23,6 +23,9 @@ ENV PAPERMERGE__MAIN__API_PREFIX=""
 ENV PAPERMERGE__OCR__LANG_CODES="deu,eng,ron"
 ENV PAPERMERGE__OCR__DEFAULT_LANG_CODE="deu"
 ENV PAPERMERGE__OCR__AUTOMATIC="false"
+# S3 worker environment variables
+ENV PAPERMERGE__MAIN__S3_QUEUE_NAME="s3"
+ENV PAPERMERGE__MAIN__S3_PREVIEW_QUEUE_NAME="s3preview"
 
 # Install dependencies and ensure all packages are up-to-date
 RUN apk update && apk add --no-cache linux-headers python3-dev \
@@ -61,32 +64,26 @@ RUN chmod +x /usr/bin/*.sh && \
 COPY --from=auth_server /app/ /auth_server_app/
 COPY --from=auth_server /usr/share/nginx/html/ /usr/share/nginx/html/auth_server/
 
+# Copy S3 worker artifacts
+COPY --from=s3worker /app/ /s3worker_app/
+
 # Copy frontend build artifacts
 COPY --from=frontend_build /build_frontend_app/apps/ui/dist/ /usr/share/nginx/html/ui
-
-# Copy S3 worker files from the official image
-COPY --from=s3worker /app/ /s3worker_app/
-RUN cd /s3worker_app && pip install -e .
 
 # Install dependencies for auth server and core app
 RUN cd /auth_server_app/ && poetry install -E pg
 RUN cd /core_app/ && poetry install -E pg -E cloud
+# Install dependencies for S3 worker if needed
+RUN cd /s3worker_app/ && if [ -f "pyproject.toml" ]; then poetry install; fi
 
 # Create supervisor configuration for S3 worker
-RUN mkdir -p /etc/papermerge/supervisor.d/
-RUN echo '[program:s3worker]\n\
-command=celery -A papermerge_s3worker.app worker %(ENV_S3_WORKER_ARGS)s\n\
-directory=/s3worker_app\n\
+RUN echo "[program:s3worker]\n\
+command=/s3worker_app/start.sh\n\
 autostart=true\n\
 autorestart=true\n\
-stdout_logfile=/dev/stdout\n\
-stdout_logfile_maxbytes=0\n\
-stderr_logfile=/dev/stderr\n\
-stderr_logfile_maxbytes=0' > /etc/papermerge/supervisor.d/s3worker.conf
-
-# Make sure the supervisor configuration is included
-RUN grep -q "files = /etc/papermerge/supervisor.d/*.conf" /etc/papermerge/supervisord.conf || \
-    echo "files = /etc/papermerge/supervisor.d/*.conf" >> /etc/papermerge/supervisord.conf
+stderr_logfile=/var/log/supervisor/s3worker.err.log\n\
+stdout_logfile=/var/log/supervisor/s3worker.out.log\n\
+priority=20" > /etc/papermerge/s3worker.conf
 
 EXPOSE 80
 
