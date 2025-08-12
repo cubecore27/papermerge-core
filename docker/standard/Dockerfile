@@ -12,6 +12,7 @@ RUN corepack enable && \
     yarn workspace ui build
 
 FROM papermerge/auth-server:1.1.5 AS auth_server
+FROM papermerge/s3worker:0.5 AS s3worker
 FROM python:3.13-alpine AS papermerge_core
 
 ENV CORE_APP=/core_app
@@ -63,28 +64,29 @@ COPY --from=auth_server /usr/share/nginx/html/ /usr/share/nginx/html/auth_server
 # Copy frontend build artifacts
 COPY --from=frontend_build /build_frontend_app/apps/ui/dist/ /usr/share/nginx/html/ui
 
+# Copy S3 worker files from the official image
+COPY --from=s3worker /app/ /s3worker_app/
+RUN cd /s3worker_app && pip install -e .
+
 # Install dependencies for auth server and core app
 RUN cd /auth_server_app/ && poetry install -E pg
 RUN cd /core_app/ && poetry install -E pg -E cloud
-
-# Install S3 worker package
-RUN pip install papermerge-s3worker==0.5
 
 # Create supervisor configuration for S3 worker
 RUN mkdir -p /etc/papermerge/supervisor.d/
 RUN echo '[program:s3worker]\n\
 command=celery -A papermerge_s3worker.app worker %(ENV_S3_WORKER_ARGS)s\n\
-directory=/core_app\n\
+directory=/s3worker_app\n\
 autostart=true\n\
 autorestart=true\n\
 stdout_logfile=/dev/stdout\n\
 stdout_logfile_maxbytes=0\n\
 stderr_logfile=/dev/stderr\n\
-stderr_logfile_maxbytes=0\n\
-environment=PYTHONPATH="/core_app"' > /etc/papermerge/supervisor.d/s3worker.conf
+stderr_logfile_maxbytes=0' > /etc/papermerge/supervisor.d/s3worker.conf
 
 # Make sure the supervisor configuration is included
-RUN echo "files = /etc/papermerge/supervisor.d/*.conf" >> /etc/papermerge/supervisord.conf
+RUN grep -q "files = /etc/papermerge/supervisor.d/*.conf" /etc/papermerge/supervisord.conf || \
+    echo "files = /etc/papermerge/supervisor.d/*.conf" >> /etc/papermerge/supervisord.conf
 
 EXPOSE 80
 
