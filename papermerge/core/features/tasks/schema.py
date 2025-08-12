@@ -28,6 +28,7 @@ LangCode = Literal[
     "spa",
     "kaz",
     "rus",
+    "fil",
 ]
 
 
