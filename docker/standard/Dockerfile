@@ -76,7 +76,7 @@ COPY --from=frontend_build /build_frontend_app/apps/ui/dist/ /usr/share/nginx/ht
 # Install dependencies for auth server and core app
 RUN cd /auth_server_app/ && poetry install -E pg
 RUN cd /core_app/ && poetry install -E pg -E cloud
-# Install dependencies for S3 worker if needed
+# Install dependencies for S3 worker if needed test
 RUN cd /s3worker_app/ && if [ -f "pyproject.toml" ]; then poetry install -E pg; fi
 EXPOSE 80
 
