@@ -21,6 +21,7 @@ export type OCRCode =
   | "ron"
   | "san"
   | "spa"
+  | "fil"
   | "kaz"
   | "rus"
 
