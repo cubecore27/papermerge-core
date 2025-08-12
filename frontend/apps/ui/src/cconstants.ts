@@ -30,7 +30,7 @@ export const OCR_LANG: OCRLangType = {
   ron: "Română",
   san: "संस्कृत",
   spa: "Español",
-  fil: "filipino",
+  fil: "Filipino",
   kaz: "Қазақша",
   rus: "Русский"
 }
