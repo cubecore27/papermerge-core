@@ -67,6 +67,9 @@ COPY --from=auth_server /usr/share/nginx/html/ /usr/share/nginx/html/auth_server
 # Copy S3 worker artifacts
 COPY --from=s3worker /app/ /s3worker_app/
 
+# Install psycopg2-binary for the S3 worker
+RUN pip install psycopg2-binary
+
 # Copy frontend build artifacts
 COPY --from=frontend_build /build_frontend_app/apps/ui/dist/ /usr/share/nginx/html/ui
 
