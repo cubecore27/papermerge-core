@@ -67,6 +67,25 @@ COPY --from=frontend_build /build_frontend_app/apps/ui/dist/ /usr/share/nginx/ht
 RUN cd /auth_server_app/ && poetry install -E pg
 RUN cd /core_app/ && poetry install -E pg -E cloud
 
+# Install S3 worker package
+RUN pip install papermerge-s3worker==0.5
+
+# Create supervisor configuration for S3 worker
+RUN mkdir -p /etc/papermerge/supervisor.d/
+RUN echo '[program:s3worker]\n\
+command=celery -A papermerge_s3worker.app worker %(ENV_S3_WORKER_ARGS)s\n\
+directory=/core_app\n\
+autostart=true\n\
+autorestart=true\n\
+stdout_logfile=/dev/stdout\n\
+stdout_logfile_maxbytes=0\n\
+stderr_logfile=/dev/stderr\n\
+stderr_logfile_maxbytes=0\n\
+environment=PYTHONPATH="/core_app"' > /etc/papermerge/supervisor.d/s3worker.conf
+
+# Make sure the supervisor configuration is included
+RUN echo "files = /etc/papermerge/supervisor.d/*.conf" >> /etc/papermerge/supervisord.conf
+
 EXPOSE 80
 
 ENTRYPOINT ["/entrypoint.sh"]
