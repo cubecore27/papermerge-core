@@ -76,15 +76,6 @@ RUN cd /core_app/ && poetry install -E pg -E cloud
 # Install dependencies for S3 worker if needed
 RUN cd /s3worker_app/ && if [ -f "pyproject.toml" ]; then poetry install; fi
 
-# Create supervisor configuration for S3 worker
-RUN echo "[program:s3worker]\n\
-command=/s3worker_app/start.sh\n\
-autostart=true\n\
-autorestart=true\n\
-stderr_logfile=/var/log/supervisor/s3worker.err.log\n\
-stdout_logfile=/var/log/supervisor/s3worker.out.log\n\
-priority=20" > /etc/papermerge/s3worker.conf
-
 EXPOSE 80
 
 ENTRYPOINT ["/entrypoint.sh"]
