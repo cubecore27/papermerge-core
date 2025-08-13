@@ -2,6 +2,12 @@
 
 cd /s3worker_app
 
+echo "S3 WORKER ENVIRONMENT:"
+echo "AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:0:5}..."
+echo "AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:0:5}..."
+echo "PAPERMERGE__S3__ENDPOINT_URL: ${PAPERMERGE__S3__ENDPOINT_URL}"
+echo "PAPERMERGE__S3__BUCKET_NAME: ${PAPERMERGE__S3__BUCKET_NAME}"
+
 # Set default arguments if S3_WORKER_ARGS is not provided
 if [[ -z "${S3_WORKER_ARGS}" ]]; then
   echo "S3_WORKER_ARGS is empty"

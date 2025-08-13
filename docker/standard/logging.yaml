@@ -19,3 +19,19 @@ loggers:
     level: INFO
     handlers: [console]
     propagate: no
+  s3worker:
+    level: DEBUG  # Set to DEBUG for maximum visibility
+    handlers: [console]
+    propagate: no
+  s3worker.tasks:
+    level: DEBUG
+    handlers: [console]
+    propagate: no
+  s3worker.client:
+    level: DEBUG
+    handlers: [console]
+    propagate: no
+  celery:
+    level: INFO
+    handlers: [console]
+    propagate: no
