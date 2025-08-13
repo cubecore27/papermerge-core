@@ -17,7 +17,6 @@ exec_perms_sync() {
   cd /core_app && poetry run paper-cli perms sync
 }
 
-
 exec_createsuperuser() {
   cd /auth_server_app && poetry run auth-cli users create --superuser
 }
@@ -37,6 +36,10 @@ exec_init() {
   exec_perms_sync
   exec_createsuperuser
   exec_index_schema_apply
+}
+
+exec_ocr_worker() {
+  cd /core_app && poetry run celery -A ocrworker.celery_app worker ${OCR_WORKER_ARGS:--Q ocr -E --loglevel=INFO}
 }
 
 rm -f /etc/nginx/nginx.conf
@@ -81,6 +84,9 @@ case $CMD in
     ;;
   createsuperuser)
     exec_createsuperuser
+    ;;
+  ocr_worker)
+    exec_ocr_worker
     ;;
   server)
     exec_init
