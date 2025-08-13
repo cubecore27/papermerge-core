@@ -1,0 +1,12 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "docker/standard/Dockerfile"
+context = "."            # repo root as Docker build context
+
+# Optional: only trigger builds when these change
+# watchPaths = ["frontend/**", "papermerge/**", "pyproject.toml", "poetry.lock", "docker/standard/**"]
+
+[deploy]
+# Optional: keep default entrypoint/cmd from image
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
