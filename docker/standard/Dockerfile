@@ -74,7 +74,7 @@ COPY --from=frontend_build /build_frontend_app/apps/ui/dist/ /usr/share/nginx/ht
 RUN cd /auth_server_app/ && poetry install -E pg
 RUN cd /core_app/ && poetry install -E pg -E cloud
 # Install dependencies for OCR worker
-RUN cd /ocrworker_app/ && poetry install
+RUN cd /ocrworker_app/ && poetry install -E pg
 
 EXPOSE 80
 
