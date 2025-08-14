@@ -12,7 +12,10 @@ RUN corepack enable && \
     yarn workspace ui build
 
 FROM papermerge/auth-server:1.1.5 AS auth_server
-FROM papermerge/s3worker:0.5 AS s3worker
+FROM papermerge/ocrworker:0.3.1 AS ocrworker
+# Add the required OCR language
+RUN apt update && apt install -y tesseract-ocr-fil
+       
 FROM python:3.13-alpine AS papermerge_core
 
 ENV CORE_APP=/core_app
@@ -23,9 +26,6 @@ ENV PAPERMERGE__MAIN__API_PREFIX=""
 ENV PAPERMERGE__OCR__LANG_CODES="deu,eng,ron"
 ENV PAPERMERGE__OCR__DEFAULT_LANG_CODE="deu"
 ENV PAPERMERGE__OCR__AUTOMATIC="false"
-# S3 worker environment variables
-ENV PAPERMERGE__MAIN__S3_QUEUE_NAME="s3"
-ENV PAPERMERGE__MAIN__S3_PREVIEW_QUEUE_NAME="s3preview"
 
 # Install dependencies and ensure all packages are up-to-date
 RUN apk update && apk add --no-cache linux-headers python3-dev \
@@ -64,11 +64,8 @@ RUN chmod +x /usr/bin/*.sh && \
 COPY --from=auth_server /app/ /auth_server_app/
 COPY --from=auth_server /usr/share/nginx/html/ /usr/share/nginx/html/auth_server/
 
-# Copy S3 worker artifacts
-COPY --from=s3worker /app/ /s3worker_app/
-
-# Install psycopg2-binary for the S3 worker
-RUN pip install psycopg2-binary
+# Copy OCR worker artifacts
+COPY --from=ocrworker /app/ /ocrworker_app/
 
 # Copy frontend build artifacts
 COPY --from=frontend_build /build_frontend_app/apps/ui/dist/ /usr/share/nginx/html/ui
@@ -76,8 +73,9 @@ COPY --from=frontend_build /build_frontend_app/apps/ui/dist/ /usr/share/nginx/ht
 # Install dependencies for auth server and core app
 RUN cd /auth_server_app/ && poetry install -E pg
 RUN cd /core_app/ && poetry install -E pg -E cloud
-# Install dependencies for S3 worker if needed test
-RUN cd /s3worker_app/ && if [ -f "pyproject.toml" ]; then poetry install -E pg; fi
+# Install dependencies for OCR worker
+RUN cd /ocrworker_app/ && poetry install
+
 EXPOSE 80
 
 ENTRYPOINT ["/entrypoint.sh"]

@@ -1,0 +1,26 @@
+version: "3.9"
+# docker build -t papermerge-core-ocr:standard -f docker/standard/Dockerfile .
+services:
+  papermerge:
+    image: papermerge-core-ocr:standard
+    container_name: papermerge-core-ocr
+    ports:
+      - "8000:80" # Expose the application on port 8000
+    environment:
+      PAPERMERGE__DATABASE__URL: "postgresql://postgres:KnsWpfvmuGYJfNlXwcGXTfFGIlfBxPFn@turntable.proxy.rlwy.net:21709/railway" # Original DB config retained
+      PAPERMERGE__REDIS__URL: "redis://default:tCuCLpZwUImXZhAdvzOUCokzJCFefDOL@crossover.proxy.rlwy.net:30740"
+      PAPERMERGE__MAIN__MEDIA_ROOT: "/data"
+      PAPERMERGE__MAIN__LOGGING_CFG: "/etc/papermerge/logging.yaml"
+      CELERY_BROKER_URL: "redis://default:tCuCLpZwUImXZhAdvzOUCokzJCFefDOL@crossover.proxy.rlwy.net:30740"
+      CELERY_RESULT_BACKEND: "redis://default:tCuCLpZwUImXZhAdvzOUCokzJCFefDOL@crossover.proxy.rlwy.net:30740"
+      PAPERMERGE__AUTH__EMAIL: "cubecore27@gmail.com"
+      PAPERMERGE__AUTH__PASSWORD: "123"
+      PAPERMERGE__AUTH__USERNAME: "marco"
+      PAPERMERGE__CORE__BASE_URL: "https://papermerges3-production.up.railway.app"
+      PAPERMERGE__MAIN__API_PREFIX: ""
+      PAPERMERGE__OCR__DEFAULT_LANG_CODE: "eng"
+      PAPERMERGE__OCR__LANG_CODES: "eng,deu,spa,fil"
+      PAPERMERGE__SECURITY__SECRET_KEY: "12345"
+      OCR_WORKER_ARGS: -Q ocr -E --loglevel=DEBUG
+    volumes:
+      - ./data/storage:/data # Mount the storage directory
