@@ -40,7 +40,10 @@ RUN apk update && apk add --no-cache linux-headers python3-dev \
     tesseract-ocr \
     tesseract-ocr-data-deu \
     tesseract-ocr-data-eng \
-    tesseract-ocr-data-ron && \
+    tesseract-ocr-data-ron \
+    tesseract-ocr-data-spa \
+    tesseract-ocr-data-fil \
+    ghostscript && \
     apk upgrade --no-cache && \
     rm -rf /var/cache/apk/*
 
