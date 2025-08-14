@@ -36,7 +36,11 @@ RUN apk update && apk add --no-cache linux-headers python3-dev \
     imagemagick \
     nginx \
     libpq-dev \
-    poppler-utils && \
+    poppler-utils \
+    tesseract-ocr \
+    tesseract-ocr-data-deu \
+    tesseract-ocr-data-eng \
+    tesseract-ocr-data-ron && \
     apk upgrade --no-cache && \
     rm -rf /var/cache/apk/*
 
