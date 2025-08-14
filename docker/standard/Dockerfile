@@ -36,20 +36,9 @@ RUN apk update && apk add --no-cache linux-headers python3-dev \
     imagemagick \
     nginx \
     libpq-dev \
-    poppler-utils \
-    tesseract-ocr \
-    tesseract-ocr-data-deu \
-    tesseract-ocr-data-eng \
-    tesseract-ocr-data-ron \
-    tesseract-ocr-data-spa \
-    ghostscript && \
+    poppler-utils && \
     apk upgrade --no-cache && \
     rm -rf /var/cache/apk/*
-
-# Install Filipino (Tagalog) language data for Tesseract manually
-RUN mkdir -p /usr/share/tessdata && \
-    cd /usr/share/tessdata && \
-    curl -L -o fil.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/fil.traineddata
 
 RUN pip install --upgrade poetry==2.0.1 roco==0.4.2 && \
     curl -L -o /bin/env2js https://github.com/papermerge/env2js/releases/download/0.2/env2js.amd64 && \
