@@ -1,39 +1,41 @@
-import type { User } from "@/types.ts"
-import { Group, Menu, UnstyledButton } from "@mantine/core"
+import type { User } from "@/types.ts";
+import { Group, Menu, UnstyledButton } from "@mantine/core";
 import {
   IconApi,
   IconChevronRight,
   IconLogout,
-  IconUser
-} from "@tabler/icons-react"
-import Cookies from "js-cookie"
-import { useSelector } from "react-redux"
+  IconUser,
+  IconSettings // New icon for Settings
+} from "@tabler/icons-react";
+import Cookies from "js-cookie";
+import { useSelector } from "react-redux";
 
 import {
   selectCurrentUser,
   selectCurrentUserError,
   selectCurrentUserStatus
-} from "@/slices/currentUser.ts"
-import { useTranslation } from "react-i18next"
+} from "@/slices/currentUser.ts";
+import { useTranslation } from "react-i18next";
 
 export default function UserMenu() {
-  const status = useSelector(selectCurrentUserStatus)
-  const error = useSelector(selectCurrentUserError)
-  const user = useSelector(selectCurrentUser) as User
-  const {t} = useTranslation()
+  const status = useSelector(selectCurrentUserStatus);
+  const error = useSelector(selectCurrentUserError);
+  const user = useSelector(selectCurrentUser) as User;
+  const { t } = useTranslation();
 
   const onSignOutClicked = () => {
-    Cookies.remove("access_token")
-    let a = document.createElement("a")
-    a.href = "/login"
-    a.click()
-  }
-  if (status == "loading") {
-    return <>Loading...</>
+    Cookies.remove("access_token");
+    let a = document.createElement("a");
+    a.href = "/login";
+    a.click();
+  };
+
+  if (status === "loading") {
+    return <>Loading...</>;
   }
 
-  if (status == "failed") {
-    return <>{error}</>
+  if (status === "failed") {
+    return <>{error}</>;
   }
 
   return (
@@ -43,18 +45,30 @@ export default function UserMenu() {
           <Group>
             <IconUser />
             {user.username}
-            <IconChevronRight size="1rem" />{" "}
+            <IconChevronRight size="1rem" />
           </Group>
         </UnstyledButton>
       </Menu.Target>
       <Menu.Dropdown>
+        {/* Added Settings item */}
+        <Menu.Item component="a" href="/settings">
+          <Group>
+            <IconSettings />
+            {t("Settings")} {/* You can translate this in your i18n files */}
+          </Group>
+        </Menu.Item>
+
+        {/* API Documentation */}
         <Menu.Item>
           <Group>
             <IconApi />
             <a href="/docs">{t("extra.rest_api")}</a>
           </Group>
         </Menu.Item>
+
         <Menu.Divider />
+
+        {/* Logout */}
         <Menu.Item>
           <Group>
             <IconLogout />
@@ -63,5 +77,5 @@ export default function UserMenu() {
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>
-  )
+  );
 }

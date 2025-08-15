@@ -44,11 +44,14 @@ import { useGetVersionQuery } from "@/features/version/apiSlice"
 import type { User } from "@/types.ts"
 import { useTranslation } from "react-i18next"
 
+// Added
+import { IconLayoutDashboard } from "@tabler/icons-react"
+
 function NavBarFull() {
-  const {t} = useTranslation()
+  const { t } = useTranslation()
   const mode = useContext(PanelContext)
   const dispatch = useAppDispatch()
-  const {data, isLoading} = useGetVersionQuery()
+  const { data, isLoading } = useGetVersionQuery()
   const viewOption = useAppSelector(s => selectCommanderViewOption(s, mode))
   const lastHome = useAppSelector(s => selectLastHome(s, "main"))
   const lastInbox = useAppSelector(s => selectLastInbox(s, "main"))
@@ -70,7 +73,7 @@ function NavBarFull() {
 
         TODO: instead of switching to tiles, switch to last view options mode
       */
-      dispatch(commanderViewOptionUpdated({mode, viewOption: "tile"}))
+      dispatch(commanderViewOptionUpdated({ mode, viewOption: "tile" }))
     }
   }
 
@@ -85,6 +88,19 @@ function NavBarFull() {
   return (
     <>
       <div className="navbar">
+        {/* Added */}
+        {user.scopes.includes(NODE_VIEW) && (
+          <NavLink to="/dashboard" onClick={onClick}>
+            {NavLinkWithFeedback("Dashboard", <IconLayoutDashboard />)}
+          </NavLink>
+        )}
+        {/* Added */}
+        {/* {user.scopes.includes(NODE_VIEW) && (
+          <NavLink to="/test" onClick={onClick}>
+            {NavLinkWithFeedback("Test", <IconLayoutDashboard />)}
+          </NavLink>
+        )} */}
+
         {user.scopes.includes(NODE_VIEW) && (
           <NavLink
             to={`/home/${lastHome?.home_id || user.home_folder_id}`}
@@ -160,7 +176,7 @@ function NavBarFull() {
 function NavBarCollapsed() {
   const mode = useContext(PanelContext)
   const dispatch = useAppDispatch()
-  const {data, isLoading} = useGetVersionQuery()
+  const { data, isLoading } = useGetVersionQuery()
   const viewOption = useAppSelector(s => selectCommanderViewOption(s, mode))
   const user = useSelector(selectCurrentUser) as User
   const status = useSelector(selectCurrentUserStatus)
@@ -179,7 +195,7 @@ function NavBarCollapsed() {
 
         TODO: instead of switching to tiles, switch to last view options mode
       */
-      dispatch(commanderViewOptionUpdated({mode, viewOption: "tile"}))
+      dispatch(commanderViewOptionUpdated({ mode, viewOption: "tile" }))
     }
   }
 
@@ -194,6 +210,12 @@ function NavBarCollapsed() {
   return (
     <>
       <div className="navbar">
+        {/* Added */}
+        {user.scopes.includes(NODE_VIEW) && (
+          <NavLink to="/dashboard" onClick={onClick}>
+            {NavLinkWithFeedbackShort(<IconLayoutDashboard />)}
+          </NavLink>
+        )}
         {user.scopes.includes(NODE_VIEW) && (
           <NavLink to={`/home/${user.home_folder_id}`} onClick={onClick}>
             {NavLinkWithFeedbackShort(<IconHome />)}
@@ -267,10 +289,10 @@ type NavLinkState = {
   isPending: boolean
 }
 
-type ResponsiveLink = ({isActive, isPending}: NavLinkState) => React.JSX.Element
+type ResponsiveLink = ({ isActive, isPending }: NavLinkState) => React.JSX.Element
 
 function NavLinkWithFeedback(text: string, icon: React.JSX.Element): ResponsiveLink {
-  return ({isActive, isPending}) => {
+  return ({ isActive, isPending }) => {
     if (isActive) {
       return (
         <Group>
@@ -298,7 +320,7 @@ function NavLinkWithFeedback(text: string, icon: React.JSX.Element): ResponsiveL
 }
 
 function NavLinkWithFeedbackShort(icon: React.JSX.Element): ResponsiveLink {
-  return ({isActive, isPending}) => {
+  return ({ isActive, isPending }) => {
     if (isActive) {
       return <Group>{icon}</Group>
     }

@@ -30,10 +30,13 @@ import {isSupportedFile} from "@/features/nodes/utils"
 import Breadcrumbs from "@/components/Breadcrumbs"
 import Pagination from "@/components/Pagination"
 import PanelContext from "@/contexts/PanelContext"
+
+// fetched data
 import {
   useGetFolderQuery,
   useGetPaginatedNodesQuery
 } from "@/features/nodes/apiSlice"
+
 import {
   commanderLastPageSizeUpdated,
   currentDocVerUpdated,
@@ -46,6 +49,8 @@ import {
   selectLastPageSize
 } from "@/features/ui/uiSlice"
 import type {NType, PanelMode} from "@/types"
+
+// style
 import classes from "./Commander.module.scss"
 
 import {
@@ -263,6 +268,8 @@ export default function Commander() {
     commanderContent = (
       <>
         <Group>
+          {/* Here nakalist yung mga items like docs or folder */}
+          {/* <h1>hello</h1> */}
           <NodesList
             items={data.items}
             onClick={onClick}
@@ -295,6 +302,7 @@ export default function Commander() {
         onDrop={onDrop}
         className={dragOver ? classes.accept_files : classes.commander}
       >
+        {/* Here */}
         <FolderNodeActions />
         <Breadcrumbs
           breadcrumb={currentFolder?.breadcrumb}

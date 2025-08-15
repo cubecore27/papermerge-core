@@ -15,6 +15,9 @@ import theme from "@/themes"
 import { initializeI18n } from "./initializeI18n"
 import router from "./router"
 
+// added
+import '@fortawesome/fontawesome-free/css/all.min.css';
+
 async function start_app() {
   store.dispatch(cookieLoaded())
   store.dispatch(fetchCurrentUser())

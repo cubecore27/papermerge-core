@@ -1,7 +1,10 @@
 import {Group, useMantineTheme} from "@mantine/core"
-import logoURL from "/logo_transparent_bg.svg"
+// logo here
+import logoURL from "/GenSys_Logo.jpeg"
 
 import {ColorSchemeToggle} from "@/components/ColorSchemeToggle/ColorSchemeToggle"
+
+// style
 import classes from "./Header.module.css"
 
 import Search from "./Search"
@@ -23,14 +26,14 @@ function Header() {
       <div className={classes.inner}>
         <Group>
           <SidebarToggle />
-          <img src={logoURL} width={"30px"} />
+          <img src={logoURL} width={"30px"} className={classes.logo}/>
         </Group>
         <Group grow className={classes.search}>
           <Search />
         </Group>
         <Group>
           <LanguageMenu />
-          <ColorSchemeToggle />
+          {/* <ColorSchemeToggle /> */}
           <UserMenu />
         </Group>
       </div>

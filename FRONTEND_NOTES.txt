@@ -1,0 +1,4 @@
+Installed Packages 
+yarn add @fortawesome/fontawesome-free
+yarn add lucide-react
+sudo apt install poppler-utils

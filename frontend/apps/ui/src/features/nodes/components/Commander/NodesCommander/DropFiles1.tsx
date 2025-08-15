@@ -1,21 +1,17 @@
-// added
-import { TextInput, Textarea } from "@mantine/core"
+import {Button, Container, Group, Loader, Modal, Text} from "@mantine/core"
+import {useState} from "react"
 
-import { Button, Container, Group, Loader, Modal, Text } from "@mantine/core"
-import { useState } from "react"
-
-import { useAppDispatch } from "@/app/hooks"
-import { apiSlice } from "@/features/api/slice"
-import { uploadFile } from "@/features/files/filesSlice"
+import {useAppDispatch} from "@/app/hooks"
+import {apiSlice} from "@/features/api/slice"
+import {uploadFile} from "@/features/files/filesSlice"
 
 import Error from "@/components/Error"
 import ScheduleOCRProcessCheckbox from "@/components/ScheduleOCRProcessCheckbox/ScheduleOCRProcessCheckbox"
-import { generateThumbnail } from "@/features/nodes/thumbnailObjectsSlice"
-import type { UploadFileOutput } from "@/features/nodes/types"
-import { useRuntimeConfig } from "@/hooks/runtime_config"
-import type { FolderType, OCRCode } from "@/types"
-import { useTranslation } from "react-i18next"
-import { DatePicker, DatePickerInput } from "@mantine/dates"
+import {generateThumbnail} from "@/features/nodes/thumbnailObjectsSlice"
+import type {UploadFileOutput} from "@/features/nodes/types"
+import {useRuntimeConfig} from "@/hooks/runtime_config"
+import type {FolderType, OCRCode} from "@/types"
+import {useTranslation} from "react-i18next"
 
 type Args = {
   opened: boolean
@@ -32,7 +28,7 @@ export const DropFilesModal = ({
   onCancel,
   opened
 }: Args) => {
-  const { t } = useTranslation()
+  const {t} = useTranslation()
   const runtimeConfig = useRuntimeConfig()
   const dispatch = useAppDispatch()
   const [error, setError] = useState("")
@@ -64,7 +60,7 @@ export const DropFilesModal = ({
 
       if (newlyCreatedNode.source?.id) {
         const newNodeID = newlyCreatedNode.source?.id
-        dispatch(generateThumbnail({ node_id: newNodeID, file: source_files[i] }))
+        dispatch(generateThumbnail({node_id: newNodeID, file: source_files[i]}))
       }
       dispatch(apiSlice.util.invalidateTags(["Node"]))
     }
@@ -90,13 +86,6 @@ export const DropFilesModal = ({
           {` ${target_title}`}
         </Text>
         ?
-
-        {/* Notes textarea */}
-        <br />
-        <Textarea label="Add Notes"/>
-        <br />
-        <DatePickerInput label="Add Document Expiry Date"/>
-
         {!runtimeConfig.ocr__automatic && (
           <ScheduleOCRProcessCheckbox
             initialCheckboxValue={false}

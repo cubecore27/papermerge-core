@@ -1,0 +1,98 @@
+/* General Layout */
+.dashboardPage {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.dpHeader {
+  margin-bottom: 10px;
+}
+
+.dpHeader h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #333;
+}
+
+.dashboardTitle span {
+  color: #0077b6;
+}
+
+/* Subheading */
+.dashboardSubheading {
+  font-size: 18px;
+  color: #666;
+  /* margin-top: 10px; */
+}
+
+/* Body Layout */
+.dpCardSection {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-top: 30px;
+}
+
+.dpCard {
+  width: 100%;
+  max-width: 350px;
+  background-color: #ffffff;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+}
+
+.dpCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.dpCardContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.dpCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.dpCardValue {
+  font-size: 30px;
+  font-weight: 700;
+  color: #0077b6;
+}
+
+.dpCardIcon {
+  background-color: #f0f9ff;
+  padding: 15px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Chart Section */
+.chartSection {
+  margin-top: 50px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.chartSection h3 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 20px;
+}

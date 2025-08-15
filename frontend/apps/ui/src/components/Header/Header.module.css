@@ -1,5 +1,9 @@
+
 .logo {
-  width: 5rem;
+  width: 30px;
+  height: 30px; /* Make sure the height is the same as the width to maintain the circle shape */
+  border-radius: 50%; /* This makes the image circular */
+  object-fit: cover; /* Ensures the image doesn't get distorted */
 }
 
 .search {

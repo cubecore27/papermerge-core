@@ -1,9 +1,9 @@
-import {createBrowserRouter} from "react-router-dom"
+import { createBrowserRouter } from "react-router-dom"
 
 import App from "@/app/App.tsx"
-import Folder, {loader as folderLoader} from "@/pages/Folder"
-import Home, {loader as homeLoader} from "@/pages/Home"
-import Inbox, {loader as inboxLoader} from "@/pages/Inbox"
+import Folder, { loader as folderLoader } from "@/pages/Folder"
+import Home, { loader as homeLoader } from "@/pages/Home"
+import Inbox, { loader as inboxLoader } from "@/pages/Inbox"
 
 import {
   CustomFieldDetails,
@@ -13,11 +13,11 @@ import {
   DocumentTypeDetails,
   DocumentTypesList
 } from "@/features/document-types/pages"
-import {GroupDetails, GroupsList} from "@/features/groups/pages"
+import { GroupDetails, GroupsList } from "@/features/groups/pages"
 import CategoryListView, {
   loader as categoryLoader
 } from "@/features/nodes/pages/CategoryListView"
-import {RoleDetails, RolesList} from "@/features/roles/pages"
+import { RoleDetails, RolesList } from "@/features/roles/pages"
 import SharedDocumentView, {
   loader as sharedDocumentLoader
 } from "@/features/shared_nodes/pages/SharedDocumentView"
@@ -27,13 +27,13 @@ import SharedFolderView, {
 import SharedNodesListView, {
   loader as sharedNodesLoader
 } from "@/features/shared_nodes/pages/SharedNodesListView"
-import {TagDetails, TagsList} from "@/features/tags/pages"
-import {UserDetails, UsersList} from "@/features/users/pages"
+import { TagDetails, TagsList } from "@/features/tags/pages"
+import { UserDetails, UsersList } from "@/features/users/pages"
 import Document from "@/pages/Document"
 
-import {AccessForbidden, NotFound, UnprocessableContent} from "@/pages/errors"
+import { AccessForbidden, NotFound, UnprocessableContent } from "@/pages/errors"
 
-import {loader as documentLoader} from "@/pages/Document"
+import { loader as documentLoader } from "@/pages/Document"
 
 import ErrorPage from "@/pages/Error.tsx"
 import {
@@ -41,6 +41,11 @@ import {
   ERRORS_404_RESOURCE_NOT_FOUND,
   ERRORS_422_UNPROCESSABLE_CONTENT
 } from "./cconstants"
+
+// Added
+import Dashboard from "@/pages/Dashboard"
+import Test from "@/pages/Test"
+import Report from "./pages/Report"
 
 const router = createBrowserRouter([
   {
@@ -52,6 +57,23 @@ const router = createBrowserRouter([
     element: <App />,
     errorElement: <ErrorPage />,
     children: [
+      // Added
+      {
+        path: "/dashboard",
+        element: <Dashboard />
+      },
+      // Added
+      {
+        path: "/test",
+        element: <Test />
+      },
+      // Added
+      {
+        path: "/settings",
+        element: <Report />
+      },
+
+
       {
         path: "/home/:folderId",
         element: <Home />,

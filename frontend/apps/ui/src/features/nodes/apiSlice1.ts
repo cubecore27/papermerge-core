@@ -1,7 +1,4 @@
-// Core RTK API setup
-import { apiSlice } from "@/features/api/slice"
-
-// Types
+import {apiSlice} from "@/features/api/slice"
 import type {
   ColoredTag,
   FolderType,
@@ -14,8 +11,7 @@ import type {
   SortMenuColumn,
   SortMenuDirection
 } from "@/types"
-
-import { getRemoteUserID, getWSURL } from "@/utils"
+import {getRemoteUserID, getWSURL} from "@/utils"
 import {
   documentMovedNotifReceived,
   documentsMovedNotifReceived
@@ -42,7 +38,8 @@ type MoveNodesType = {
     source_ids: string[]
     target_id: string
   }
-  sourceFolderID: string // for cache invalidation
+  // this one is used for cache tag invalidation
+  sourceFolderID: string
 }
 
 export type PaginatedArgs = {
@@ -54,11 +51,10 @@ export type PaginatedArgs = {
   sortColumn: SortMenuColumn
 }
 
-import { PAGINATION_DEFAULT_ITEMS_PER_PAGES } from "@/cconstants"
+import {PAGINATION_DEFAULT_ITEMS_PER_PAGES} from "@/cconstants"
 
 export const apiSliceWithNodes = apiSlice.injectEndpoints({
   endpoints: builder => ({
-    // Existing endpoints...
     getPaginatedNodes: builder.query<Paginated<NodeType>, PaginatedArgs>({
       query: ({
         nodeID,
@@ -77,31 +73,38 @@ export const apiSliceWithNodes = apiSlice.injectEndpoints({
         return `/nodes/${nodeID}?page_size=${page_size}&filter=${filter}&order=${orderBy}`
       },
       providesTags: (
-        result = { page_number: 1, page_size: 1, num_pages: 1, items: [] },
+        result = {page_number: 1, page_size: 1, num_pages: 1, items: []},
         _error,
         arg
       ) => [
-        "Node",
-        { type: "Node", id: arg.nodeID },
-        ...result.items.map(({ id }) => ({ type: "Node", id }) as const)
+        "Node", // generic Node tag
+        {type: "Node", id: arg.nodeID}, // "Node" tag per parent ID
+        // "Node" tag per each returned item
+        ...result.items.map(({id}) => ({type: "Node", id}) as const)
       ]
     }),
-
     getFolder: builder.query<FolderType, string>({
-      query: folderID => `/folders/${folderID}`,
-      providesTags: (_result, _error, arg) => [{ type: "Folder", id: arg }],
+      query: folderID => {
+        return `/folders/${folderID}`
+      },
+      providesTags: (_result, _error, arg) => [{type: "Folder", id: arg}],
       async onCacheEntryAdded(arg, lifecycleApi) {
         let url = getWSURL()
 
-        if (!url) return
+        if (!url) {
+          return
+        }
+
         if (getRemoteUserID()) {
           url = `${url}?remote-user-id=${getRemoteUserID()}`
         }
-
         const ws = new WebSocket(url)
         try {
+          // wait for the initial query to resolve before proceeding
           await lifecycleApi.cacheDataLoaded
 
+          // when data is received from the socket connection to the server,
+          // update our query result with the received message
           const listener = (event: MessageEvent<string>) => {
             const message: {
               type: ServerNotifType
@@ -111,29 +114,47 @@ export const apiSliceWithNodes = apiSlice.injectEndpoints({
             switch (message.type) {
               case "documents_moved": {
                 const payload = message.payload as ServerNotifDocumentsMoved
-                let invSource = payload.source_folder_ids.map(id => ({ type: "Folder" as const, id }))
-                let invTarget = payload.target_folder_ids.map(id => ({ type: "Folder" as const, id }))
-                lifecycleApi.dispatch(apiSlice.util.invalidateTags([...invTarget, ...invSource]))
+                let invSourceFolderTags = payload.source_folder_ids.map(i => {
+                  return {type: "Folder" as const, id: i}
+                })
+                let invTargetFolderTags = payload.target_folder_ids.map(i => {
+                  return {type: "Folder" as const, id: i}
+                })
+                const invTags = invTargetFolderTags.concat(invSourceFolderTags)
+                lifecycleApi.dispatch(apiSlice.util.invalidateTags(invTags))
                 lifecycleApi.dispatch(documentsMovedNotifReceived(payload))
                 break
               }
               case "document_moved": {
                 const payload = message.payload as ServerNotifDocumentMoved
-                if (arg == payload.source_folder_id || arg == payload.target_folder_id) {
-                  lifecycleApi.dispatch(apiSlice.util.invalidateTags([{ type: "Folder", id: arg }]))
+
+                if (
+                  arg == payload.source_folder_id ||
+                  arg == payload.target_folder_id
+                ) {
+                  lifecycleApi.dispatch(
+                    apiSlice.util.invalidateTags([{type: "Folder", id: arg}])
+                  )
                   lifecycleApi.dispatch(documentMovedNotifReceived(payload))
                 }
+
                 break
               }
+
+              default:
+                break
             }
           }
           ws.addEventListener("message", listener)
-        } catch {}
+        } catch {
+          // no-op in case `cacheEntryRemoved` resolves before `cacheDataLoaded`,
+          // in which case `cacheDataLoaded` will throw
+        }
         await lifecycleApi.cacheEntryRemoved
+        // perform cleanup steps once the `cacheEntryRemoved` promise resolves
         ws.close()
       }
     }),
-
     addNewFolder: builder.mutation<NodeType, CreateFolderType>({
       query: folder => ({
         url: "/nodes/",
@@ -142,7 +163,6 @@ export const apiSliceWithNodes = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Node"]
     }),
-
     renameFolder: builder.mutation<NodeType, RenameFolderType>({
       query: node => ({
         url: `/nodes/${node.id}`,
@@ -151,10 +171,9 @@ export const apiSliceWithNodes = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, node) => [
         "Node",
-        { type: "Document", id: node.id }
+        {type: "Document", id: node.id}
       ]
     }),
-
     updateNodeTags: builder.mutation<NodeType, UpdateNodeTagsType>({
       query: node => ({
         url: `/nodes/${node.id}/tags`,
@@ -164,16 +183,14 @@ export const apiSliceWithNodes = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, input) => [
         "Node",
         "Tag",
-        { type: "Document", id: input.id },
-        { type: "NodeTag", id: input.id }
+        {type: "Document", id: input.id},
+        {type: "NodeTag", id: input.id}
       ]
     }),
-
     getNodeTags: builder.query<ColoredTag[], string>({
       query: nodeID => `/nodes/${nodeID}/tags`,
-      providesTags: (_result, _error, arg) => [{ type: "NodeTag", id: arg }]
+      providesTags: (_result, _error, arg) => [{type: "NodeTag", id: arg}]
     }),
-
     deleteNodes: builder.mutation<void, string[]>({
       query: nodeIDs => ({
         url: `nodes/`,
@@ -181,9 +198,10 @@ export const apiSliceWithNodes = apiSlice.injectEndpoints({
         body: nodeIDs
       }),
       invalidatesTags: (_result, _error, ids) =>
-        ids.map(id => ({ type: "Node", id }))
+        ids.map(id => {
+          return {type: "Node", id: id}
+        })
     }),
-
     moveNodes: builder.mutation<void, MoveNodesType>({
       query: data => ({
         url: "/nodes/move",
@@ -192,55 +210,25 @@ export const apiSliceWithNodes = apiSlice.injectEndpoints({
       }),
       // @ts-ignore
       invalidatesTags: (_result, _error, arg) => {
-        const invalidatedDocs = arg.body.source_ids.map(id => ({
-          type: "Document",
-          id
-        }))
+        /* Source IDs must be invalidated, as document nodes,
+        because their breadcrumb changes. Example: say user moves
+        3 nodes (one of which is a document D) from folder A two folder B.
+        If user opens document D AFTER the move operation document D
+        must have new breadcrumb featuring folder B.
+         */
+        const invalidatedDocs = arg.body.source_ids.map(i => {
+          return {type: "Document", id: i}
+        })
         return [
           ...invalidatedDocs,
-          { type: "Node", id: arg.body.target_id },
-          { type: "Node", id: arg.sourceFolderID }
+          {type: "Node", id: arg.body.target_id},
+          {type: "Node", id: arg.sourceFolderID}
         ]
       }
-    }),
-
-    // ✅ Dashboard endpoint #1: KPIs (total documents, storage, etc.)
-    getDashboardStats: builder.query<{
-      total_documents: number
-      new_this_month: number
-      storage_used_gb: number
-      pending_ocr: number
-      untagged_files: number
-    }, void>({
-      query: () => "/dashboard/stats",
-      providesTags: ["DashboardStats"]
-    }),
-
-    // ✅ Dashboard endpoint #2: Recent activity feed
-    getRecentActivity: builder.query<{
-      text: string
-      time: string
-      type: 'upload' | 'ocr' | 'tag' | 'access' | 'other'
-    }[], void>({
-      query: () => "/dashboard/recent-activity",
-      providesTags: ["DashboardActivity"]
-    }),
-
-    // ✅ Dashboard endpoint #3: System health indicators
-    getSystemHealth: builder.query<{
-      label: string
-      status: 'healthy' | 'warning' | 'error'
-      value?: number
-      icon?: string
-      count?: number
-    }[], void>({
-      query: () => "/dashboard/system-health",
-      providesTags: ["DashboardHealth"]
     })
   })
 })
 
-// Export all generated hooks
 export const {
   useGetPaginatedNodesQuery,
   useGetFolderQuery,
@@ -249,10 +237,5 @@ export const {
   useUpdateNodeTagsMutation,
   useGetNodeTagsQuery,
   useDeleteNodesMutation,
-  useMoveNodesMutation,
-
-  // ✅ Export dashboard hooks
-  useGetDashboardStatsQuery,
-  useGetRecentActivityQuery,
-  useGetSystemHealthQuery
+  useMoveNodesMutation
 } = apiSliceWithNodes

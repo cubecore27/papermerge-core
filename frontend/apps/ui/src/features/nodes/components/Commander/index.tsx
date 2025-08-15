@@ -11,7 +11,7 @@ export default function Commander() {
   const viewOption = useAppSelector(s => selectCommanderViewOption(s, mode))
 
   if (viewOption == "list" || viewOption == "tile") {
-    return <NodesCommander />
+    return <NodesCommander /> // here
   }
 
   return <DocumentsByTypeCommander />

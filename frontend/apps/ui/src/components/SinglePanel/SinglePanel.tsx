@@ -65,7 +65,7 @@ export default function SinglePanel() {
   */
 
   if (panelComponent == "commander") {
-    return <Commander />
+    return <Commander /> // here
   }
 
   if (panelComponent == "viewer") {

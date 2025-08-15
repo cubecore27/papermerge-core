@@ -66,6 +66,8 @@ export default function FolderNodeActions() {
 
   return (
     <Group ref={ref} justify="space-between">
+      {/* Here oh */}
+      {/* <h1>hello</h1> */}
       <Group>
         {selectedCount == 0 && <UploadButton />}
         {selectedCount == 0 && <NewFolderButton />}
