@@ -1,7 +1,7 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "docker/Dockerfile"
-context = "auth-server"            # repo root as Docker build context
+context = "auth_server"            # repo root as Docker build context
 
 # Optional: only trigger builds when these change
 # watchPaths = ["frontend/**", "papermerge/**", "pyproject.toml", "poetry.lock", "docker/standard/**"]
