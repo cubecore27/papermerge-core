@@ -24,7 +24,8 @@ RUN apk update && apk add --no-cache \
     python3-dev \
     linux-headers
 COPY auth-server/ ./auth_server/
-COPY auth-server/pyproject.toml auth-server/poetry.lock ./
+COPY auth-server/pyproject.toml auth-server/poetry.lock ./ 
+COPY auth-server/README.md ./
 RUN pip install --upgrade poetry==2.0.1 psutil==6.1.1
 RUN poetry install -E pg --no-interaction
 
