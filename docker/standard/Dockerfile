@@ -11,7 +11,42 @@ RUN corepack enable && \
     yarn install --immutable && \
     yarn workspace ui build
 
-FROM papermerge/auth-server:1.1.5 AS auth_server
+# Replace the pre-built auth server with a custom build
+FROM python:3.13-alpine AS auth_server
+WORKDIR /build_auth_server
+
+# Install dependencies needed to build the auth server
+RUN apk update && apk add --no-cache \
+    gcc \
+    curl \
+    libc-dev \
+    libpq-dev \
+    git
+
+# Copy auth server code from your local repository
+COPY auth-server/ .
+
+# Install Poetry for dependency management
+RUN pip install --upgrade poetry==2.0.1
+
+# Install auth server dependencies and build it
+RUN poetry install -E pg && \
+    poetry build
+
+# Set up the directories expected by the main image
+RUN mkdir -p /app /usr/share/nginx/html/auth_server
+
+# Copy the Python environment to /app
+RUN cp -r $(poetry env info -p)/* /app/
+
+# Copy UI files if they exist in ui2 directory (adjust path if needed)
+RUN if [ -d "ui2" ]; then \
+        cp -r ui2/* /usr/share/nginx/html/auth_server/; \
+    fi
+
+# Copy nginx configuration if needed
+RUN cp -f nginx.conf /app/nginx.conf || true
+
 FROM python:3.13-alpine AS papermerge_core
 
 ENV CORE_APP=/core_app
