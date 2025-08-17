@@ -22,7 +22,6 @@ RUN apk update && apk add --no-cache \
     libc-dev \
     libpq-dev \
     git \
-    # Add these dependencies
     musl-dev \
     python3-dev \
     linux-headers
@@ -32,9 +31,9 @@ COPY auth-server/ .
 
 # Install Poetry and use pip for psutil
 RUN pip install --upgrade poetry==2.0.1 && \
-    pip install psutil==6.1.1  # Install problematic dependency directly
+    pip install psutil==6.1.1
 
-# Install auth server dependencies with more memory and use pip for direct installs
+# Install auth server dependencies
 RUN poetry config virtualenvs.in-project true && \
     poetry install -E pg --no-interaction || \
     (pip install -r <(poetry export -E pg -f requirements.txt) && \
@@ -43,12 +42,13 @@ RUN poetry config virtualenvs.in-project true && \
 # Set up the directories expected by the main image
 RUN mkdir -p /app /usr/share/nginx/html/auth_server
 
-# Copy the Python environment to /app
-RUN cp -r $(poetry env info -p)/* /app/
+# Copy Python environment AND poetry files to /app
+RUN cp -r $(poetry env info -p)/* /app/ && \
+    cp pyproject.toml poetry.lock /app/
 
-# Copy UI files if they exist in ui2 directory (adjust path if needed)
+# Copy UI files if they exist in ui2 directory
 RUN if [ -d "ui2" ]; then \
-        cp -r ui2/* /usr/share/nginx/html/auth_server/; \
+        cp -r ui2/dist/* /usr/share/nginx/html/auth_server/ || cp -r ui2/* /usr/share/nginx/html/auth_server/; \
     fi
 
 # Copy nginx configuration if needed
