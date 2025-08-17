@@ -106,7 +106,7 @@ COPY --from=auth_server /usr/share/nginx/html/ /usr/share/nginx/html/auth_server
 COPY --from=frontend_build /build_frontend_app/apps/ui/dist/ /usr/share/nginx/html/ui
 
 # Install dependencies for auth server and core app
-RUN cd /auth_server_app/ && poetry config virtualenvs.create false && poetry install -E pg --no-root
+RUN cd /auth_server_app/ && poetry config virtualenvs.create false && poetry install -E pg
 RUN cd /core_app/ && poetry install -E pg -E cloud
 
 EXPOSE 80
