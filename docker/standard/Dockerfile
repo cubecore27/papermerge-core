@@ -15,23 +15,30 @@ RUN corepack enable && \
 FROM python:3.13-alpine AS auth_server
 WORKDIR /build_auth_server
 
-# Install dependencies needed to build the auth server
+# Install more comprehensive build dependencies
 RUN apk update && apk add --no-cache \
     gcc \
     curl \
     libc-dev \
     libpq-dev \
-    git
+    git \
+    # Add these dependencies
+    musl-dev \
+    python3-dev \
+    linux-headers
 
 # Copy auth server code from your local repository
 COPY auth-server/ .
 
-# Install Poetry for dependency management
-RUN pip install --upgrade poetry==2.0.1
+# Install Poetry and use pip for psutil
+RUN pip install --upgrade poetry==2.0.1 && \
+    pip install psutil==6.1.1  # Install problematic dependency directly
 
-# Install auth server dependencies and build it
-RUN poetry install -E pg && \
-    poetry build
+# Install auth server dependencies with more memory and use pip for direct installs
+RUN poetry config virtualenvs.in-project true && \
+    poetry install -E pg --no-interaction || \
+    (pip install -r <(poetry export -E pg -f requirements.txt) && \
+     poetry install -E pg --no-interaction)
 
 # Set up the directories expected by the main image
 RUN mkdir -p /app /usr/share/nginx/html/auth_server
