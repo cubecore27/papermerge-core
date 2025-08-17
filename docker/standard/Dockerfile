@@ -1,5 +1,5 @@
-# Build frontend UI for core
 FROM node:20.19 AS frontend_build
+RUN apt update && apt upgrade -y && rm -rf /var/cache/apk/*
 WORKDIR /build_frontend_app
 COPY frontend/ .
 RUN corepack enable && \
@@ -7,7 +7,7 @@ RUN corepack enable && \
     yarn install --immutable && \
     yarn workspace ui build
 
-# Build frontend UI for auth server
+# Build auth server UI
 FROM node:24.5-alpine AS auth_ui_build
 WORKDIR /auth_ui
 COPY auth-server/ui2/ ./
@@ -22,7 +22,7 @@ COPY auth-server/auth_server/ ./auth_server/
 RUN pip install --upgrade poetry roco==0.4.1
 RUN poetry install -E pg
 
-# Final image
+# Main Papermerge Core image
 FROM python:3.13-alpine AS papermerge_core
 
 ENV CORE_APP=/core_app
@@ -34,7 +34,6 @@ ENV PAPERMERGE__OCR__LANG_CODES="deu,eng,ron"
 ENV PAPERMERGE__OCR__DEFAULT_LANG_CODE="deu"
 ENV PAPERMERGE__OCR__AUTOMATIC="false"
 
-# Install dependencies
 RUN apk update && apk add --no-cache linux-headers python3-dev \
     gcc \
     curl \
@@ -51,12 +50,11 @@ RUN pip install --upgrade poetry==2.0.1 roco==0.4.2 && \
     curl -L -o /bin/env2js https://github.com/papermerge/env2js/releases/download/0.2/env2js.amd64 && \
     chmod +x /bin/env2js
 
-# Copy core app code and dependencies
 COPY poetry.lock pyproject.toml README.md LICENSE ${CORE_APP}/
+
 WORKDIR ${CORE_APP}
 RUN poetry install --no-root -E pg -vvv
 
-# Copy entrypoint and configs
 COPY docker/standard/entrypoint.sh /entrypoint.sh
 COPY docker/standard/bundles/supervisor/* docker/standard/logging.yaml /etc/papermerge/
 COPY docker/standard/bundles/nginx/* /etc/nginx/
@@ -65,7 +63,7 @@ COPY ./papermerge ${CORE_APP}/papermerge/
 COPY docker/standard/scripts/ /usr/bin/
 RUN chmod +x /usr/bin/*.sh && chmod +x /entrypoint.sh
 
-# Copy auth server artifacts
+# Copy auth server artifacts from build stages
 COPY --from=auth_server_build /auth_server_app/ /auth_server_app/
 COPY --from=auth_ui_build /auth_ui/dist/ /usr/share/nginx/html/auth_server/
 
