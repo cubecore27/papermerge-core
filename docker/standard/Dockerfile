@@ -28,9 +28,9 @@ COPY auth-server/pyproject.toml auth-server/poetry.lock ./
 COPY auth-server/README.md ./
 RUN pip install --upgrade poetry==2.0.1 psutil==6.1.1
 
-# Build UI if present
 WORKDIR /app/auth_server/ui2
 RUN yarn install && yarn build || echo "No UI to build"
+RUN ls -l /app/auth_server/ui2/dist || echo "dist not found"
 
 WORKDIR /app
 RUN poetry install -E pg --no-interaction
