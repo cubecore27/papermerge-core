@@ -11,11 +11,9 @@ RUN corepack enable && \
     yarn install --immutable && \
     yarn workspace ui build
 
-# Replace the pre-built auth server with a custom build
+# Build auth server from local source
 FROM python:3.13-alpine AS auth_server
-WORKDIR /build_auth_server
-
-# Install more comprehensive build dependencies
+WORKDIR /app
 RUN apk update && apk add --no-cache \
     gcc \
     curl \
@@ -25,34 +23,10 @@ RUN apk update && apk add --no-cache \
     musl-dev \
     python3-dev \
     linux-headers
-
-# Copy auth server code from your local repository
-COPY auth-server/ .
-
-# Install Poetry and use pip for psutil
-RUN pip install --upgrade poetry==2.0.1 && \
-    pip install psutil==6.1.1
-
-# Install auth server dependencies
-RUN poetry config virtualenvs.in-project true && \
-    poetry install -E pg --no-interaction || \
-    (pip install -r <(poetry export -E pg -f requirements.txt) && \
-     poetry install -E pg --no-interaction)
-
-# Set up the directories expected by the main image
-RUN mkdir -p /app /usr/share/nginx/html/auth_server
-
-# Copy Python environment AND poetry files to /app
-RUN cp -r $(poetry env info -p)/* /app/ && \
-    cp pyproject.toml poetry.lock /app/
-
-# Copy UI files if they exist in ui2 directory
-RUN if [ -d "ui2" ]; then \
-        cp -r ui2/dist/* /usr/share/nginx/html/auth_server/ || cp -r ui2/* /usr/share/nginx/html/auth_server/; \
-    fi
-
-# Copy nginx configuration if needed
-RUN cp -f nginx.conf /app/nginx.conf || true
+COPY auth-server/ ./auth_server/
+COPY auth-server/pyproject.toml auth-server/poetry.lock ./
+RUN pip install --upgrade poetry==2.0.1 psutil==6.1.1
+RUN poetry install -E pg --no-interaction
 
 FROM python:3.13-alpine AS papermerge_core
 
@@ -100,13 +74,13 @@ RUN chmod +x /usr/bin/*.sh && \
 
 # Copy auth server artifacts
 COPY --from=auth_server /app/ /auth_server_app/
-COPY --from=auth_server /usr/share/nginx/html/ /usr/share/nginx/html/auth_server/
+COPY --from=auth_server /app/auth_server/ui2/dist/ /usr/share/nginx/html/auth_server/
 
 # Copy frontend build artifacts
 COPY --from=frontend_build /build_frontend_app/apps/ui/dist/ /usr/share/nginx/html/ui
 
 # Install dependencies for auth server and core app
-RUN cd /auth_server_app/ && poetry config virtualenvs.create false && poetry install -E pg --no-root
+RUN cd /auth_server_app/ && poetry config virtualenvs.create false && poetry install -E pg
 RUN cd /core_app/ && poetry install -E pg -E cloud
 
 EXPOSE 80
