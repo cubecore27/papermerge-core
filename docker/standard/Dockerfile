@@ -16,6 +16,7 @@ RUN yarn install && yarn build
 # Build auth server backend
 FROM python:3.13-alpine AS auth_server_build
 WORKDIR /auth_server_app
+RUN apk add --no-cache gcc musl-dev python3-dev
 COPY auth-server/poetry.lock auth-server/pyproject.toml auth-server/README.md ./
 COPY auth-server/auth_server/ ./auth_server/
 RUN pip install --upgrade poetry roco==0.4.1
