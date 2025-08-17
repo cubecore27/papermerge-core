@@ -71,10 +71,6 @@ COPY --from=auth_ui_build /auth_ui/dist/ /usr/share/nginx/html/auth_server/
 # Copy frontend build artifacts
 COPY --from=frontend_build /build_frontend_app/apps/ui/dist/ /usr/share/nginx/html/ui
 
-# Install dependencies for auth server and core app
-RUN cd /auth_server_app/ && poetry install -E pg
-RUN cd /core_app/ && poetry install -E pg -E cloud
-
 EXPOSE 80
 
 ENTRYPOINT ["/entrypoint.sh"]
