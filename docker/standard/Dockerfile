@@ -1,28 +1,17 @@
 FROM node:20.19 AS frontend_build
+# ensure all packages are up-to-date
 RUN apt update && apt upgrade -y && rm -rf /var/cache/apk/*
+
 WORKDIR /build_frontend_app
 COPY frontend/ .
+
+# Use corepack to manage Yarn version and install dependencies
 RUN corepack enable && \
     yarn set version 4.9.2 && \
     yarn install --immutable && \
     yarn workspace ui build
 
-# Build auth server UI
-FROM node:24.5-alpine AS auth_ui_build
-WORKDIR /auth_ui
-COPY auth-server/ui2/ ./
-RUN yarn install && yarn build
-
-# Build auth server backend
-FROM python:3.13-alpine AS auth_server_build
-WORKDIR /auth_server_app
-RUN apk add --no-cache gcc musl-dev python3-dev linux-headers
-COPY auth-server/poetry.lock auth-server/pyproject.toml auth-server/README.md ./
-COPY auth-server/auth_server/ ./auth_server/
-RUN pip install --upgrade poetry roco==0.4.1
-RUN poetry install -E pg
-
-# Main Papermerge Core image
+FROM papermerge/auth-server:1.1.5 AS auth_server
 FROM python:3.13-alpine AS papermerge_core
 
 ENV CORE_APP=/core_app
@@ -34,6 +23,7 @@ ENV PAPERMERGE__OCR__LANG_CODES="deu,eng,ron"
 ENV PAPERMERGE__OCR__DEFAULT_LANG_CODE="deu"
 ENV PAPERMERGE__OCR__AUTOMATIC="false"
 
+# Install dependencies and ensure all packages are up-to-date
 RUN apk update && apk add --no-cache linux-headers python3-dev \
     gcc \
     curl \
@@ -60,15 +50,22 @@ COPY docker/standard/bundles/supervisor/* docker/standard/logging.yaml /etc/pape
 COPY docker/standard/bundles/nginx/* /etc/nginx/
 COPY docker/standard/core.js.tmpl alembic.ini ${CORE_APP}/
 COPY ./papermerge ${CORE_APP}/papermerge/
-COPY docker/standard/scripts/ /usr/bin/
-RUN chmod +x /usr/bin/*.sh && chmod +x /entrypoint.sh
 
-# Copy auth server artifacts from build stages
-COPY --from=auth_server_build /auth_server_app/ /auth_server_app/
-COPY --from=auth_ui_build /auth_ui/dist/ /usr/share/nginx/html/auth_server/
+COPY docker/standard/scripts/ /usr/bin/
+# Set execute permissions
+RUN chmod +x /usr/bin/*.sh && \
+    chmod +x /entrypoint.sh
+
+# Copy auth server artifacts
+COPY --from=auth_server /app/ /auth_server_app/
+COPY --from=auth_server /usr/share/nginx/html/ /usr/share/nginx/html/auth_server/
 
 # Copy frontend build artifacts
 COPY --from=frontend_build /build_frontend_app/apps/ui/dist/ /usr/share/nginx/html/ui
+
+# Install dependencies for auth server and core app
+RUN cd /auth_server_app/ && poetry install -E pg
+RUN cd /core_app/ && poetry install -E pg -E cloud
 
 EXPOSE 80
 
