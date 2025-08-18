@@ -11,6 +11,11 @@ RUN corepack enable && \
     yarn install --immutable && \
     yarn workspace ui build
 
+FROM node:24.5-alpine AS auth_server_ui
+WORKDIR /auth_ui
+COPY auth-server/ui2/ ./
+RUN yarn install && yarn build
+
 FROM python:3.13-alpine AS auth_server
 
 RUN apk update && \
@@ -31,6 +36,8 @@ COPY auth-server/docker/supervisord.conf /etc/
 COPY auth-server/docker/nginx.conf /etc/nginx/nginx.conf
 COPY auth-server/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+COPY --from=auth_server_ui /auth_ui/dist /usr/share/nginx/html/
 
 FROM python:3.13-alpine AS papermerge_core
 
