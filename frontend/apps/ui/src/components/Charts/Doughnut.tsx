@@ -1,28 +1,44 @@
+// style
+import "./chartStyle.css";
+
+// DoughnutChart.tsx
 import { Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const data = {
-  labels: ["Receipt", "Contracts", "Application Form"],
-  datasets: [
-    {
-      label: "Platform Usage",
-      data: [40, 35, 25],
-      backgroundColor: ["#4BC0C0", "#FF9F40", "#9966FF"],
+type Props = {
+  labels: string[];
+  values: number[];
+};
+
+export default function DoughnutChart({ labels, values }: Props) {
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: "Tag Distribution",
+        data: values,
+        backgroundColor: [
+          "#4BC0C0",
+          "#FF9F40",
+          "#9966FF",
+          "#FF6384",
+          "#36A2EB",
+          "#FFCD56",
+        ],
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: { position: "right" },
+      title: { display: true, text: "Document Tags" },
     },
-  ],
-};
+  };
 
-const options = {
-  responsive: true,
-  plugins: {
-    legend: { position: "right" },
-    title: { display: true, text: "User Platforms" },
-  },
-};
-
-export default function DoughnutChart() {
   return (
     <div className="chartCardCont">
       <Doughnut data={data} options={options} />
