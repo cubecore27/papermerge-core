@@ -1740,6 +1740,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "Papermerge DMS UI@workspace:."
   dependencies:
+    "@fortawesome/fontawesome-free": "npm:^7.0.0"
     "@typescript-eslint/eslint-plugin": "npm:^8.40.0"
     "@typescript-eslint/parser": "npm:^8.38.0"
     chart.js: "npm:^4.5.0"
