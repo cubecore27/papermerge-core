@@ -1,9 +1,9 @@
 # Changelog
 
-## 3.5.3 - not yet released
+## 3.5.3 - 2025-08-18
 
 - Performance - async instead of sync: all REST API/DB operations are changed to async
-- add home/inbox folder DB level NOT NULL contraints
+- add home/inbox folder DB level NOT NULL constraints
 - [FE] User friendly RoleForm (now is a tree of checkboxes)
 - User latest version of auth-server (1.1.5 instead of 1.1.3)
 
