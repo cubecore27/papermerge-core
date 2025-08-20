@@ -1,6 +1,6 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "auth-server/docker/Dockerfile"
+dockerfilePath = "docker/standard/Dockerfile"
 context = "."            # repo root as Docker build context
 
 # Optional: only trigger builds when these change

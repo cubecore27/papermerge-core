@@ -1,34 +1,97 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  FileText, Upload, Scan, Tag, FolderOpen, TrendingUp,
-  Users, Search, AlertCircle, HardDrive, CheckCircle, XCircle,
-  Pi
+  FileText, Upload, Scan, Tag, FolderOpen,
+  Search, AlertCircle, HardDrive, CheckCircle, XCircle
 } from 'lucide-react';
 
-// styles
-import styles from './dashboard.module.css'; 
+import styles from './dashboard.module.css';
 
-// components
+// Components
 import LineChart from '@/components/Charts/Line';
 import DoughnutChart from '@/components/Charts/Doughnut';
 import BarChart from '@/components/Charts/Bar';
 
+// Hooks & State
+import { useGetPaginatedNodesQuery } from '@/features/nodes/apiSlice';
+import { useAppSelector } from '@/app/hooks';
+import { selectCurrentUser } from '@/slices/currentUser';
+
 const Dashboard = () => {
-  const [hoveredAction, setHoveredAction] = React.useState(null);
+  const navigate = useNavigate();
+  const [hoveredAction, setHoveredAction] = React.useState<number | null>(null);
+  const currentUser = useAppSelector(selectCurrentUser);
+
+  const {
+    data: homeNodeData,
+    isLoading: homeDataLoading,
+    error: homeDataError
+  } = useGetPaginatedNodesQuery({
+    nodeID: currentUser?.home_folder_id || '',
+    page_number: 1,
+    page_size: 1000,
+    sortDir: 'az',
+    sortColumn: 'title'
+  }, {
+    skip: !currentUser?.home_folder_id
+  });
+
+  const totalDocuments = homeNodeData?.items?.filter(item => item.ctype === 'document').length || 0;
+  const totalFolders = homeNodeData?.items?.filter(item => item.ctype === 'folder').length || 0;
+  const untaggedDocuments = homeNodeData?.items?.filter(
+    item => item.ctype === 'document' && (!item.tags || item.tags.length === 0)
+  ).length || 0;
+
+
+  // Check the structure of data
+  // console.log("homeNodeData.items", homeNodeData?.items);
+
+  // Generate tag distribution data
+  const tagCountMap: Record<string, number> = {};
+  homeNodeData?.items?.forEach(item => {
+    item.tags?.forEach(tag => {
+      const tagName = tag.name;
+      tagCountMap[tagName] = (tagCountMap[tagName] || 0) + 1;
+    });
+  });
+
+  const tagLabels = Object.keys(tagCountMap);
+  const tagValues = Object.values(tagCountMap);
 
   const kpiData = [
-    { icon: FileText, value: '100', label: 'Total Documents' },
-    { icon: Upload, value: '15', label: 'New This Month' },
-    { icon: HardDrive, value: '100 GB', label: 'Storage Used' },
-    { icon: Search, value: '5', label: 'Pending OCR' },
-    { icon: Tag, value: '20', label: 'Untagged Files' }
+    {
+      icon: FileText,
+      value: homeDataLoading ? '...' : totalDocuments.toString(),
+      label: 'Total Documents'
+    },
+    {
+      icon: FolderOpen,
+      value: homeDataLoading ? '...' : totalFolders.toString(),
+      label: 'Total Folders'
+    },
+    {
+      icon: Tag,
+      value: homeDataLoading ? '...' : untaggedDocuments.toString(),
+      label: 'Untagged Files'
+    },
+    {
+      icon: Search,
+      value: '--',
+      label: 'Pending OCR'
+    },
+    {
+      icon: HardDrive,
+      value: '-- GB',
+      label: 'Storage Used'
+    }
   ];
 
   const quickActions = [
-    { icon: Upload, text: 'Upload Document' },
-    { icon: Scan, text: 'Scan from Device' },
-    { icon: Tag, text: 'Create Tag/Category' },
+    { icon: Upload, text: 'Upload Document', onClick: () => navigate('/home') },
+    { icon: Tag, text: 'Create Tag', onClick: () => navigate('/tags') },
+    { icon: Tag, text: 'Create Categories', onClick: () => navigate('/document-types') },
     { icon: FolderOpen, text: 'Import from Folder' },
+    { icon: Scan, text: 'Scan from Device' },
     { icon: AlertCircle, text: 'View OCR Errors' }
   ];
 
@@ -51,19 +114,27 @@ const Dashboard = () => {
     <div className={styles.dashboard}>
       {/* Header */}
       <div className={styles.header}>
-        <h1 className={styles.title}>Welcome, <span>Admin!</span></h1>
+        <h1 className={styles.title}>
+          Welcome, <span>{currentUser?.username || 'User'}!</span>
+        </h1>
         <p className={styles.subtitle}>Document management system overview</p>
       </div>
 
       {/* KPI Cards */}
       <div className={styles.kpiGrid}>
-        {kpiData.map((item, index) => (
-          <div key={index} className={styles.kpiCard}>
-            <item.icon className={styles.kpiIcon} />
-            <h3 className={styles.kpiValue}>{item.value}</h3>
-            <p className={styles.kpiLabel}>{item.label}</p>
+        {homeDataError ? (
+          <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#dc2626' }}>
+            Error loading dashboard data
           </div>
-        ))}
+        ) : (
+          kpiData.map((item, index) => (
+            <div key={index} className={styles.kpiCard}>
+              <item.icon className={styles.kpiIcon} />
+              <h3 className={styles.kpiValue}>{item.value}</h3>
+              <p className={styles.kpiLabel}>{item.label}</p>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Main Content Grid */}
@@ -73,8 +144,6 @@ const Dashboard = () => {
             <div className={styles.chartCard}>
               <h3 className={styles.chartTitle}>Document Growth</h3>
               <div className={styles.chartPlaceholder}>
-                {/* <TrendingUp size={24} style={{ marginRight: '8px' }} />
-                📈 Line Chart - Uploads over time */}
                 <LineChart />
               </div>
             </div>
@@ -82,8 +151,7 @@ const Dashboard = () => {
             <div className={styles.chartCard}>
               <h3 className={styles.chartTitle}>Tag Distribution</h3>
               <div className={styles.chartPlaceholder}>
-                {/* 🥧 Pie Chart - Most used tags */}
-                <DoughnutChart />
+                <DoughnutChart labels={tagLabels} values={tagValues} />
               </div>
             </div>
           </div>
@@ -91,8 +159,6 @@ const Dashboard = () => {
           <div className={styles.chartCard}>
             <h3 className={styles.chartTitle}>Upload Activity by User</h3>
             <div className={styles.chartPlaceholder}>
-              {/* <Users size={24} style={{ marginRight: '8px' }} />
-              📊 Bar Chart - User activity comparison */}
               <BarChart />
             </div>
           </div>
@@ -108,6 +174,7 @@ const Dashboard = () => {
                 className={`${styles.actionCard} ${hoveredAction === index ? styles.actionCardHover : ''}`}
                 onMouseEnter={() => setHoveredAction(index)}
                 onMouseLeave={() => setHoveredAction(null)}
+                onClick={action.onClick}
               >
                 <action.icon className={styles.actionIcon} />
                 <p className={styles.actionText}>{action.text}</p>
@@ -140,13 +207,10 @@ const Dashboard = () => {
             {systemHealth.map((item, index) => (
               <div key={index} className={styles.healthItem}>
                 <span className={styles.healthLabel}>{item.label}</span>
-                <div className={`${styles.healthStatus} ${
-                  item.status === 'healthy'
-                    ? styles.statusGreen
-                    : item.status === 'warning'
-                    ? styles.statusYellow
-                    : styles.statusRed
-                }`}>
+                <div className={`${styles.healthStatus} ${item.status === 'healthy' ? styles.statusGreen :
+                  item.status === 'warning' ? styles.statusYellow :
+                    styles.statusRed
+                  }`}>
                   {item.icon && <item.icon size={12} />}
                   {item.count && <span>{item.count}</span>}
                   {item.value && (
@@ -160,8 +224,8 @@ const Dashboard = () => {
                               item.value > 80
                                 ? '#dc2626'
                                 : item.value > 60
-                                ? '#d97706'
-                                : '#059669'
+                                  ? '#d97706'
+                                  : '#059669'
                           }}
                         />
                       </div>
@@ -173,8 +237,8 @@ const Dashboard = () => {
                       {item.status === 'healthy'
                         ? 'Online'
                         : item.status === 'warning'
-                        ? 'Warning'
-                        : 'Error'}
+                          ? 'Warning'
+                          : 'Error'}
                     </span>
                   )}
                 </div>

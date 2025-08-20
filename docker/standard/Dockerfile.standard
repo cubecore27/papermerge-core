@@ -11,34 +11,7 @@ RUN corepack enable && \
     yarn install --immutable && \
     yarn workspace ui build
 
-FROM node:24.5-alpine AS auth_server_ui
-WORKDIR /auth_ui
-COPY auth-server/ui2/ ./
-RUN yarn install && yarn build
-
-FROM python:3.13-alpine AS auth_server
-
-RUN apk update && \
-    apk upgrade && \
-    apk add --no-cache linux-headers python3-dev gcc libc-dev supervisor nginx libpq-dev && \
-    rm -rf /var/cache/apk/*
-
-ENV APP_DIR=/app
-WORKDIR ${APP_DIR}
-
-COPY auth-server/poetry.lock auth-server/pyproject.toml auth-server/README.md ${APP_DIR}/
-COPY auth-server/auth_server/ ${APP_DIR}/auth_server/
-
-RUN pip install --upgrade poetry roco==0.4.1
-RUN cd ${APP_DIR} && poetry install -E pg
-
-COPY auth-server/docker/supervisord.conf /etc/
-COPY auth-server/docker/nginx.conf /etc/nginx/nginx.conf
-COPY auth-server/docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-COPY --from=auth_server_ui /auth_ui/dist /usr/share/nginx/html/
-
+FROM papermerge/auth-server:1.1.5 AS auth_server
 FROM python:3.13-alpine AS papermerge_core
 
 ENV CORE_APP=/core_app
