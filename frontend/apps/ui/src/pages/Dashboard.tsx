@@ -44,8 +44,8 @@ const Dashboard = () => {
 
 
   // Check the structure of data
-  // console.log("homeNodeData.items", homeNodeData?.items);
-  console.log("Sample document:", homeNodeData?.items?.[0]);
+  console.log("homeNodeData.items", homeNodeData?.items);
+  // console.log("Sample document:", homeNodeData?.items?.[0]);
 
 
   // === Generate tag distribution data

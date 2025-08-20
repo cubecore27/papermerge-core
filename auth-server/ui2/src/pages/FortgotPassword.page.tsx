@@ -1,8 +1,13 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import styles from './forgot-password.module.css';
 import { Paper } from '@mantine/core';
 
 export default function ForgotPassword() {
+  // navigate
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -60,6 +65,7 @@ export default function ForgotPassword() {
               Send Reset Link
             </button>
           </form>
+          <div className={styles.fpButtonBack} onClick={() => navigate(-1)}>Back to Login</div>
         </Paper>
       </section>
     </div>

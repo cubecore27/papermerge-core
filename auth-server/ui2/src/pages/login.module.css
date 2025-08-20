@@ -72,3 +72,26 @@
   color: blue;
   font-size: 14px;
 }
+
+
+/* MEDIA QUERIES */
+@media (max-width: 768px) {
+  .loginPage {
+    flex-direction: column;
+  }
+
+
+  .loginLeft,
+  .loginRight {
+    width: 100%;
+    flex: none;
+  }
+
+  .loginLeft {
+    height: 20vh; /* or any height you find appropriate for mobile */
+  }
+
+  .loginRight {
+    padding: 1rem;
+  }
+}
