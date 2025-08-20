@@ -6,6 +6,7 @@ import { useForm } from '@mantine/form';
 import { get_runtime_config } from '@/RuntimeConfig';
 import { RuntimeConfig } from '@/types';
 import { useTranslation } from "react-i18next";
+import TwoFactorVerification from '@/components/TwoFactorVerification/TwoFactorVerification';
 
 function get_token_endpoint(): string {
   const base_url = import.meta.env.VITE_TOKEN_BASE_URL
@@ -31,6 +32,10 @@ function get_redirect_endpoint(): string {
 export default function Login() {
   const {t} = useTranslation()
   const [error, setError] = useState<string>()
+  const [showTwoFactor, setShowTwoFactor] = useState(false);
+  const [tempToken, setTempToken] = useState<string>('');
+  const [userId, setUserId] = useState<string>('');
+  
   const form = useForm({
     mode: 'uncontrolled',
     initialValues: { username: '', password: '' },
@@ -60,22 +65,58 @@ export default function Login() {
           }
         },
       )
-      .then(response => {
-          if (response.status == 401) {
+      .then(response => response.json().then(data => ({ status: response.status, data })))
+      .then(({ status, data }) => {
+          console.log('Login response:', { status, data }); // Debug log
+          if (status == 401) {
             setError("Username or password incorrect");
-          } else if (response.status != 200) {
-            setError(`Error: status code ${response.status}`);
+          } else if (status != 200) {
+            setError(`Error: status code ${status}`);
           } else {
-            let a = document.createElement('a');
-            a.href = get_redirect_endpoint()
-            a.click()
+            // Check if 2FA is required - handle multiple possible response formats
+            if (data.requires_2fa || data.temp_token) {
+              setTempToken(data.temp_token);
+              setUserId(data.user_id);
+              setShowTwoFactor(true);
+              setError(undefined);
+            } else {
+              // Regular login success
+              let a = document.createElement('a');
+              a.href = get_redirect_endpoint()
+              a.click()
+            }
           }
         }
       ).catch(error => {
         console.log(`There was an error ==='${error}'===`);
+        setError("An error occurred during login");
       });
     }
   }, [submittedValues?.username, submittedValues?.password])
+
+  const handleTwoFactorSuccess = () => {
+    // This will be called when 2FA verification is successful
+    // The TwoFactorVerification component handles the redirect
+  };
+
+  const handleBackToLogin = () => {
+    setShowTwoFactor(false);
+    setTempToken('');
+    setUserId('');
+    setError(undefined);
+    form.reset();
+  };
+
+  if (showTwoFactor) {
+    return (
+      <TwoFactorVerification
+        tempToken={tempToken}
+        userId={userId}
+        onSuccess={handleTwoFactorSuccess}
+        onBack={handleBackToLogin}
+      />
+    );
+  }
 
   return (
     <form onSubmit={form.onSubmit(setSubmittedValues)}>

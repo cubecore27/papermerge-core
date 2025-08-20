@@ -4,7 +4,7 @@ import logging
 from typing import Tuple
 from passlib.hash import pbkdf2_sha256
 from sqlalchemy import select, func, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import delete
 
 from auth_server import schema, constants, scopes
@@ -110,12 +110,28 @@ def sync_perms(db_session: Session):
     db_session.commit()
 
 
-def get_user_uuid(session: Session, user_id: uuid.UUID) -> orm.User:
-    stmt = select(orm.User).where(orm.User.id == user_id)
+def get_user_uuid(session: Session, user_id: uuid.UUID) -> schema.User:
+    stmt = select(orm.User).options(
+        selectinload(orm.User.roles).selectinload(orm.Role.permissions)
+    ).where(orm.User.id == user_id)
 
     db_user = session.scalars(stmt).one()
+    model_user = schema.User.model_validate(db_user)
+    
+    if model_user.is_superuser:
+        # superuser has all permissions (permission = scope)
+        model_user.scopes = list(scopes.SCOPES.keys())
+    else:
+        # user inherits his/her scopes
+        # from the direct permissions associated
+        # and from groups he/she belongs to
+        user_scopes = set()
+        for role in db_user.roles:
+            user_scopes.update([p.codename for p in role.permissions])
 
-    return db_user
+        model_user.scopes = list(user_scopes)
+
+    return model_user
 
 
 def get_user_by_username(session: Session, username: str) -> schema.User | None:

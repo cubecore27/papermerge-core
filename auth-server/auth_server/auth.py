@@ -2,6 +2,7 @@ import logging
 
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import NoResultFound
+from uuid import UUID
 
 from datetime import datetime, timedelta, UTC
 import jwt
@@ -15,10 +16,12 @@ from auth_server import schema
 from auth_server.config import Settings
 from auth_server.backends import OIDCAuth, ldap
 from auth_server.utils import raise_on_empty
+from auth_server.services.otp import OTPService
 
 
 logger = logging.getLogger(__name__)
 settings = Settings()
+otp_service = OTPService(settings)
 
 
 async def authenticate(
@@ -30,12 +33,13 @@ async def authenticate(
     client_id: str | None = None,
     code: str | None = None,
     redirect_url: str | None = None,
-) -> schema.User | str | None:
+    otp_code: str | None = None,
+) -> schema.User | str | schema.TwoFactorToken | None:
 
     # provider = DB
     if username and password and provider == schema.AuthProvider.DB:
         # password based authentication against database
-        return db_auth(session, username, password)
+        return await db_auth(session, username, password, otp_code)
 
     if provider == schema.AuthProvider.OIDC:
         raise_on_empty(
@@ -46,7 +50,7 @@ async def authenticate(
         )
     elif provider == schema.AuthProvider.LDAP:
         # provider = ldap
-        return await ldap_auth(session, username, password)
+        return await ldap_auth(session, username, password, otp_code)
     else:
         raise ValueError("Unknown or empty auth provider")
 
@@ -80,7 +84,9 @@ def create_access_token(
     return encoded_jwt
 
 
-def db_auth(session: Session, username: str, password: str) -> schema.User | None:
+async def db_auth(
+    session: Session, username: str, password: str, otp_code: str | None = None
+) -> schema.User | schema.TwoFactorToken | None:
     """Authenticates user based on username and password
 
     User data is read from database.
@@ -100,13 +106,53 @@ def db_auth(session: Session, username: str, password: str) -> schema.User | Non
         logger.warning(f"Authentication failed for '{username}'")
         return None
 
-    logger.info(f"Authentication succeded for '{username}'")
+    # Check if 2FA is enabled for this user
+    if user.is_2fa_enabled:
+        if not otp_code:
+            # First factor authentication successful, need OTP
+            logger.info(f"2FA enabled for '{username}', sending OTP")
+            
+            # Send OTP to user's email
+            success = await otp_service.create_and_send_otp(session, user.id, "login")
+            if not success:
+                logger.error(f"Failed to send OTP to user {username}")
+                raise HTTPException(status_code=500, detail="Failed to send verification code")
+            
+            # Return temporary token indicating 2FA is required
+            temp_token_data = schema.TokenData(
+                sub=str(user.id),
+                preferred_username=user.username,
+                email=user.email,
+                scopes=["temp:2fa"]  # Special scope for temporary token
+            )
+            
+            temp_token = create_access_token(
+                data=temp_token_data,
+                expires_delta=timedelta(minutes=10),  # Short lived temp token
+                secret_key=settings.papermerge__security__secret_key,
+                algorithm=settings.papermerge__security__token_algorithm,
+            )
+            
+            return schema.TwoFactorToken(
+                temp_token=temp_token,
+                requires_2fa=True,
+                user_id=user.id
+            )
+        else:
+            # Verify OTP code
+            if not otp_service.verify_otp(session, user.id, otp_code, "login"):
+                logger.warning(f"Invalid OTP for user '{username}'")
+                raise HTTPException(status_code=401, detail="Invalid verification code")
+            
+            logger.info(f"2FA authentication successful for '{username}'")
+
+    logger.info(f"Authentication successful for '{username}'")
     return user
 
 
 async def ldap_auth(
-    session: Session, username: str, password: str
-) -> schema.User | None:
+    session: Session, username: str, password: str, otp_code: str | None = None
+) -> schema.User | schema.TwoFactorToken | None:
     client = ldap.get_client(username, password)
 
     try:
@@ -176,3 +222,63 @@ def create_token(user: schema.User) -> str:
     )
 
     return access_token
+
+
+async def enable_2fa(session: Session, user_id: UUID, otp_code: str) -> bool:
+    """Enable 2FA for a user after verifying OTP"""
+    try:
+        # Verify OTP code first
+        if not otp_service.verify_otp(session, user_id, otp_code, "setup"):
+            logger.warning(f"Invalid OTP for 2FA setup for user {user_id}")
+            return False
+        
+        # Update user's 2FA status
+        user = dbapi.get_user_uuid(session, user_id)
+        if not user:
+            logger.error(f"User {user_id} not found")
+            return False
+        
+        # Update the user in the database directly via ORM
+        user_orm = session.query(User).filter(User.id == user_id).first()
+        if user_orm:
+            user_orm.is_2fa_enabled = True
+            session.commit()
+            logger.info(f"2FA enabled for user {user.username}")
+            return True
+        
+        return False
+        
+    except Exception as e:
+        logger.error(f"Error enabling 2FA: {e}")
+        session.rollback()
+        return False
+
+
+async def disable_2fa(session: Session, user_id: UUID, otp_code: str) -> bool:
+    """Disable 2FA for a user after verifying OTP"""
+    try:
+        # Verify OTP code first
+        if not otp_service.verify_otp(session, user_id, otp_code, "disable"):
+            logger.warning(f"Invalid OTP for 2FA disable for user {user_id}")
+            return False
+        
+        # Update user's 2FA status
+        user = dbapi.get_user_uuid(session, user_id)
+        if not user:
+            logger.error(f"User {user_id} not found")
+            return False
+        
+        # Update the user in the database directly via ORM
+        user_orm = session.query(User).filter(User.id == user_id).first()
+        if user_orm:
+            user_orm.is_2fa_enabled = False
+            session.commit()
+            logger.info(f"2FA disabled for user {user.username}")
+            return True
+        
+        return False
+        
+    except Exception as e:
+        logger.error(f"Error disabling 2FA: {e}")
+        session.rollback()
+        return False
