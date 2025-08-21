@@ -39,6 +39,8 @@ poetry run alembic upgrade head
 # Or if you need to create the initial migration
 poetry run alembic revision --autogenerate -m "Add 2FA support"
 poetry run alembic upgrade head
+poetry run alembic stamp head
+
 ```
 
 ### New Table: `email_otps`

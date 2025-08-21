@@ -1,0 +1,97 @@
+.loginPage {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  .loginLeft {
+    flex: 1;
+    height: 100%;
+    display: flex;
+  }
+  
+  .loginLeftImage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  
+  .loginLeft img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  
+  .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* background-color: rgba(0, 255, 255, 0.3); */
+    background-color: rgba(31, 143, 195, 0.166);
+    backdrop-filter: blur(4px);
+    z-index: 1;
+    pointer-events: none;
+  }
+  
+  .loginRight {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 2rem;
+  }
+  
+  .title {
+    text-align: center;
+    font-size: 2rem; /* or whatever size you prefer */
+    font-weight: 700;
+    margin: 0;
+  }
+  
+  .subtitle {
+    text-align: center;
+    color: #868e96; /* Mantine's 'dimmed' */
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+  }
+  
+  .forgotPasswordNavigate {
+    display: flex;
+    justify-content: center;
+    text-decoration: none;
+    color: blue;
+    font-size: 14px;
+  }
+  
+  
+  /* MEDIA QUERIES */
+  @media (max-width: 768px) {
+    .loginPage {
+      flex-direction: column;
+    }
+  
+  
+    .loginLeft,
+    .loginRight {
+      width: 100%;
+      flex: none;
+    }
+  
+    .loginLeft {
+      height: 20vh; /* or any height you find appropriate for mobile */
+    }
+  
+    .loginRight {
+      padding: 1rem;
+    }
+  }

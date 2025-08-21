@@ -24,6 +24,7 @@ if database_url:
 # for 'autogenerate' support
 from auth_server.db.base import Base
 from auth_server.db.orm import User, EmailOTP  # Import models to register them
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -42,7 +43,6 @@ def run_migrations_offline() -> None:
 
     Calls to context.execute() here emit the given string to the
     script output.
-
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -50,6 +50,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        version_table="alembic_version_auth",  # <--- custom table for auth-server
     )
 
     with context.begin_transaction():
@@ -61,7 +62,6 @@ def run_migrations_online() -> None:
 
     In this scenario we need to create an Engine
     and associate a connection with the context.
-
     """
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
@@ -71,7 +71,9 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            version_table="alembic_version_auth",  # <--- custom table for auth-server
         )
 
         with context.begin_transaction():
