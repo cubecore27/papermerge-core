@@ -571,7 +571,7 @@ async def remove_node_tags(
     db_session: AsyncSession = Depends(get_db),
 ) -> schema.Document | schema.Folder:
     """
-    Dissociate given tags the node.
+    Dissociate given tags from the node.
 
     Required scope: `{scope}`
 
@@ -586,9 +586,24 @@ async def remove_node_tags(
         ):
             raise exc.HTTP403Forbidden()
 
+        # --- Log tag deletion activity BEFORE actual removal ---
+        try:
+            new_activity = UserActivityStats(
+                user_id=user.id,
+                node_id=node_id,
+                action_type="tag_delete",
+                timestamp=datetime.utcnow(),
+            )
+            db_session.add(new_activity)
+            await db_session.flush()  # ensures FK constraint passes
+        except Exception as e:
+            logger.warning(f"Failed to log tag delete activity for user {user.id}: {e}")
+
         node, error = await nodes_dbapi.remove_node_tags(
             db_session, node_id=node_id, tags=tags, user_id=user.id
         )
+        await db_session.commit()  # commit activity + changes
+
     except EntityNotFound:
         raise HTTP404NotFound
 

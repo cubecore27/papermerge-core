@@ -7,10 +7,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from papermerge.core.features.users.router import router as usr_router
+
 from papermerge.core.features.tags.router import router as tags_router
 from papermerge.core.features.groups.router import router as groups_router
 from papermerge.core.features.roles.router import router as roles_router
 from papermerge.core.features.document_types.router import router as dt_router
+
 from papermerge.core.features.custom_fields.router import router as cf_router
 from papermerge.core.features.nodes.router import router as nodes_router
 from papermerge.core.features.nodes.router_folders import \
@@ -40,6 +42,12 @@ from papermerge.core.routers.version import (
 )
 from papermerge.core.version import __version__
 from papermerge.core.config import get_settings
+
+# customs
+from papermerge.core.features.useractivity.storage import router as storage_router
+from papermerge.core.features.useractivity.router import router as user_activity_router
+from papermerge.core.features.document.router_document_stats import router as document_stats_router
+
 
 config = get_settings()
 prefix = config.papermerge__main__api_prefix
@@ -79,6 +87,10 @@ app.include_router(roles_router, prefix=prefix)
 app.include_router(probe_router, prefix=prefix)
 app.include_router(tasks_router, prefix=prefix)
 app.include_router(version_router, prefix=prefix)
+# custom
+app.include_router(user_activity_router, prefix=prefix)
+app.include_router(storage_router)
+app.include_router(document_stats_router, prefix=prefix)
 
 if config.papermerge__search__url:
     app.include_router(search_router, prefix=prefix)

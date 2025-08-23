@@ -2,6 +2,8 @@ import io
 import logging
 import uuid
 from typing import Annotated
+from datetime import datetime
+
 
 from fastapi import (
     APIRouter,
@@ -31,6 +33,7 @@ from papermerge.core.types import OrderEnum, PaginatedResponse
 from papermerge.core.db import common as dbapi_common
 from papermerge.core.routers.common import OPEN_API_GENERIC_JSON_DETAIL
 from papermerge.core.db.engine import get_db
+from papermerge.core.features.useractivity.db.orm import UserActivityStats
 
 router = APIRouter(
     prefix="/documents",
@@ -198,6 +201,16 @@ async def upload_file(
 
     if error:
         raise HTTPException(status_code=400, detail=error.model_dump())
+
+    # Add a record to UserActivityStats
+    new_activity = UserActivityStats(
+        user_id=user.id,
+        node_id=document_id,
+        action_type="document_upload",
+        timestamp=datetime.utcnow(),
+    )
+    db_session.add(new_activity)
+    await db_session.commit()
 
     return doc
 

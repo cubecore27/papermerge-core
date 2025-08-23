@@ -42,6 +42,10 @@ from .features.roles.schema import Role, RoleDetails, CreateRole, UpdateRole, Pe
 from .schemas.error import Error, AttrError
 from .schemas.common import PaginatedResponse
 from .schemas.version import Version
+from pydantic import BaseModel
+
+class TotalDocumentSize(BaseModel):
+    total_size: int
 
 __all__ = [
     'Folder',

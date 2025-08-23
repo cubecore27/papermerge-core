@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import datetime
 from typing import Annotated
 
 from sqlalchemy.exc import NoResultFound
@@ -14,6 +15,7 @@ from papermerge.core.db import common as dbapi_common
 from papermerge.core import exceptions as exc
 from papermerge.core.db.engine import get_db
 from papermerge.core.features.document.response import DocumentFileResponse
+from papermerge.core.features.useractivity.db.orm import UserActivityStats
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +56,11 @@ async def download_document_version(
     Required scope: `{scope}`
     """
     try:
+        # Fetch the file node ID from the document version
         doc_id = await dbapi.get_doc_id_from_doc_ver_id(
             db_session, doc_ver_id=document_version_id
         )
+
         if not await dbapi_common.has_node_perm(
                 db_session,
                 node_id=doc_id,
@@ -77,11 +81,25 @@ async def download_document_version(
         error = schema.Error(messages=["Document version file not found"])
         raise HTTPException(status_code=404, detail=error.model_dump())
 
+    # --- User activity logging for download ---
+    try:
+        new_activity = UserActivityStats(
+            user_id=user.id,
+            node_id=doc_id,  # <- use node ID
+            action_type="document_download",
+            timestamp=datetime.utcnow(),
+        )
+        db_session.add(new_activity)
+        # await db_session.commit()
+    except Exception as e:
+        logger.warning(f"Failed to log download activity for user {user.id}: {e}")
+
     return DocumentFileResponse(
         doc_ver.file_path,
-        filename=doc_ver.file_name,  # Will be in Content-Disposition header
+        filename=doc_ver.file_name,
         content_disposition_type="attachment"
     )
+
 
 @router.get(
     "/{doc_ver_id}/download-url",
@@ -107,6 +125,7 @@ async def get_doc_ver_download_url(
         doc_id = await dbapi.get_doc_id_from_doc_ver_id(
             db_session, doc_ver_id=doc_ver_id
         )
+
         if not await dbapi_common.has_node_perm(
             db_session,
             node_id=doc_id,
@@ -119,11 +138,23 @@ async def get_doc_ver_download_url(
             db_session,
             doc_ver_id=doc_ver_id,
         )
+
+        # --- Log getting presigned download URL ---
+        new_activity = UserActivityStats(
+            user_id=user.id,
+            node_id=doc_id,  # <- use node ID
+            action_type="document_download_url",
+            timestamp=datetime.utcnow(),
+        )
+        db_session.add(new_activity)
+        await db_session.commit()
+
     except NoResultFound:
         raise exc.HTTP404NotFound()
+    except Exception as e:
+        logger.warning(f"Failed to log download-url activity for user {user.id}: {e}")
 
     return result
-
 
 
 @router.get(
@@ -144,6 +175,7 @@ async def document_version_details(
         doc_id = await dbapi.get_doc_id_from_doc_ver_id(
             db_session, doc_ver_id=document_version_id
         )
+
         if not await dbapi_common.has_node_perm(
                 db_session,
                 node_id=doc_id,
@@ -151,6 +183,7 @@ async def document_version_details(
                 user_id=user.id,
         ):
             raise exc.HTTP403Forbidden()
+
         doc_ver: orm.DocumentVersion = await dbapi.get_doc_ver(
             db_session, document_version_id=document_version_id
         )
@@ -159,3 +192,87 @@ async def document_version_details(
         raise HTTPException(status_code=404, detail=error.model_dump())
 
     return schema.DocumentVersion.model_validate(doc_ver)
+
+
+@router.get(
+    "/{document_id}/total-size",
+    response_model=schema.TotalDocumentSize,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Document not found",
+            "content": OPEN_API_GENERIC_JSON_DETAIL,
+        }
+    },
+)
+@utils.docstring_parameter(scope=scopes.NODE_VIEW)
+async def calculate_total_document_size(
+    document_id: uuid.UUID,
+    user: Annotated[schema.User, Security(get_current_user, scopes=[scopes.NODE_VIEW])],
+    db_session: AsyncSession = Depends(get_db),
+) -> schema.TotalDocumentSize:
+    """
+    Calculate the total size of all versions of a document.
+
+    Required scope: `{scope}`
+    """
+    try:
+        # Check if the user has permission to view the document
+        if not await dbapi_common.has_node_perm(
+            db_session,
+            node_id=document_id,
+            codename=scopes.NODE_VIEW,
+            user_id=user.id,
+        ):
+            raise exc.HTTP403Forbidden()
+
+        # Query to calculate the total size
+        result = await db_session.execute(
+            dbapi_common.select_sum_document_versions_size(document_id)
+        )
+        total_size = result.scalar()
+
+        if total_size is None:
+            raise exc.HTTP404NotFound()
+
+    except NoResultFound:
+        raise exc.HTTP404NotFound()
+
+    return schema.TotalDocumentSize(total_size=total_size)
+
+
+@router.get(
+    "/total-size",
+    response_model=schema.TotalDocumentSize,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "No document versions found",
+            "content": OPEN_API_GENERIC_JSON_DETAIL,
+        }
+    },
+)
+async def calculate_total_table_size(
+    db_session: AsyncSession = Depends(get_db),
+) -> schema.TotalDocumentSize:
+    """
+    Calculate the total size of all document versions in the table.
+    """
+    try:
+        # Query to calculate the total size of all document versions
+        result = await db_session.execute(
+            dbapi_common.select_sum_all_document_versions_size()
+        )
+        total_size = result.scalar()
+
+        if total_size is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No document versions found",
+            )
+
+    except NoResultFound:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No document versions found",
+        )
+
+    return schema.TotalDocumentSize(total_size=total_size)
