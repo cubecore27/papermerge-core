@@ -1,3 +1,4 @@
+
 import logging
 from uuid import UUID
 
@@ -13,14 +14,64 @@ from auth_server.config import get_settings
 from auth_server import utils
 from auth_server.db.engine import Session
 from auth_server.db import api as dbapi
+
 from auth_server.services.otp import OTPService
+from auth_server.services.password_reset import PasswordResetService
+from auth_server.services.email import EmailService
 
 app = FastAPI()
 
 settings = get_settings()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 logger = logging.getLogger(__name__)
+
+
 otp_service = OTPService(settings)
+email_service = EmailService(settings)
+password_reset_service = PasswordResetService(settings, email_service)
+
+
+
+# Forgot password: request reset
+from fastapi import Depends
+from sqlalchemy.orm import Session as OrmSession
+from auth_server.db.engine import Session as DBSession
+
+def get_db():
+    db = DBSession()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+from auth_server.db.orm import PasswordResetToken, User
+import uuid
+from datetime import datetime, timedelta, timezone
+from sqlalchemy.orm.exc import NoResultFound
+
+
+@app.post("/forgot-password/request")
+async def forgot_password_request(
+    req: schema.PasswordResetRequest,
+    db: OrmSession = Depends(get_db),
+):
+    # Use PasswordResetService for all logic
+    success = await password_reset_service.send_reset_email(db, req.email)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to send reset email")
+    return {"message": "If the email exists, a reset link was sent."}
+
+# Forgot password: reset
+@app.post("/forgot-password/reset")
+async def forgot_password_reset(
+    req: schema.PasswordResetAction,
+    db: OrmSession = Depends(get_db),
+):
+    ok = password_reset_service.reset_password(db, req.token, req.new_password)
+    if not ok:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+    return {"message": "Password has been reset successfully."}
 
 
 @app.post("/token")
@@ -340,3 +391,35 @@ async def get_2fa_status(request: Request) -> dict:
     except Exception as e:
         logger.error(f"Error getting 2FA status: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+# Public endpoint to verify password reset token
+
+# Inline implementation for password reset token verification
+from auth_server.db.orm import PasswordResetToken, User
+from sqlalchemy.orm.exc import NoResultFound
+from datetime import datetime, timezone
+
+@app.get("/api/verify-reset-token/{token}")
+async def verify_reset_token(token: str, db: OrmSession = Depends(get_db)):
+    try:
+        reset_token = db.query(PasswordResetToken).filter_by(token=token).one()
+    except NoResultFound:
+        logger.error(f"Token not found: {token}")
+        raise HTTPException(status_code=401, detail="Invalid or expired reset token")
+    # Check if token is used or expired
+    now = datetime.now(timezone.utc)
+    expires_at = reset_token.expires_at
+    logger.info(f"Token check: now={now.isoformat()}, expires_at={expires_at} (tzinfo={expires_at.tzinfo}), is_used={reset_token.is_used}")
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+        logger.info(f"expires_at updated with tzinfo: {expires_at}")
+    if reset_token.is_used or now > expires_at:
+        logger.warning(f"Token expired or used: now={now}, expires_at={expires_at}, is_used={reset_token.is_used}")
+        raise HTTPException(status_code=401, detail="Invalid or expired reset token")
+    # Get username
+    user = db.query(User).filter_by(id=reset_token.user_id).first()
+    if not user:
+        logger.error(f"User not found for token: {token}, user_id={reset_token.user_id}")
+        raise HTTPException(status_code=404, detail="User not found")
+    logger.info(f"Token valid for user: {user.username}")
+    return {"username": user.username}

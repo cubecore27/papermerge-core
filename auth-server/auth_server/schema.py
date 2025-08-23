@@ -2,6 +2,14 @@ from uuid import UUID
 from enum import Enum
 from pydantic import BaseModel, ConfigDict
 
+# Password reset request schema
+class PasswordResetRequest(BaseModel):
+    email: str
+
+# Password reset action schema
+class PasswordResetAction(BaseModel):
+    token: str
+    new_password: str
 
 class User(BaseModel):
     id: UUID
