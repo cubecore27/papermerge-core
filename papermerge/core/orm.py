@@ -8,6 +8,7 @@ from .features.roles.db.orm import Role, Permission, roles_permissions_associati
 from .features.document_types.db.orm import DocumentType, DocumentTypeCustomField
 from .features.shared_nodes.db.orm import SharedNode
 from .features.eventlog.db.orm import EventLog
+from .features.useractivity.db.orm import UserActivityStats
 
 __all__ = [
     'User',
@@ -29,6 +30,7 @@ __all__ = [
     'DocumentTypeCustomField',
     'SharedNode',
     'EventLog',
+    'UserActivityStats'
 ]
 
 
