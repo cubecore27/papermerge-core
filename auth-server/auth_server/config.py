@@ -46,6 +46,15 @@ class Settings(BaseSettings):
     # fallback user email will be set to username@<email-domain-fallback>
     papermerge__auth__ldap_user_email_domain_fallback: str = "example-ldap.com"
 
+    # Email settings for OTP
+    papermerge__email__smtp_host: str = "localhost"
+    papermerge__email__smtp_port: int = 587
+    papermerge__email__smtp_username: str | None = None
+    papermerge__email__smtp_password: str | None = None
+    papermerge__email__smtp_use_tls: bool = False
+    papermerge__email__smtp_start_tls: bool = True
+    papermerge__email__from_address: str = "noreply@papermerge.com"
+
 
 @lru_cache()
 def get_settings():

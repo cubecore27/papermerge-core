@@ -1,9 +1,9 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, UTC
 from typing import List, Literal
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, String, func, Column, Table
+from sqlalchemy import ForeignKey, String, func, Column, Table, DateTime, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
@@ -54,7 +54,7 @@ users_roles_association = Table(
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, insert_default=uuid.uuid4())
+    id: Mapped[UUID] = mapped_column(primary_key=True, insert_default=uuid.uuid4)
     username: Mapped[str]
     email: Mapped[str]
     password: Mapped[str]
@@ -97,6 +97,8 @@ class User(Base):
     groups: Mapped[list["Group"]] = relationship(
         secondary=user_groups_association, back_populates="users"
     )
+    # 2FA fields
+    is_2fa_enabled: Mapped[bool] = mapped_column(default=False)
 
     __mapper_args__ = {"confirm_deleted_rows": False}
 
@@ -107,7 +109,7 @@ CType = Literal["document", "folder"]
 class Node(Base):
     __tablename__ = "nodes"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, insert_default=uuid.uuid4())
+    id: Mapped[UUID] = mapped_column(primary_key=True, insert_default=uuid.uuid4)
     title: Mapped[str] = mapped_column(String(200))
     ctype: Mapped[CType]
     lang: Mapped[str] = mapped_column(String(8))
@@ -178,3 +180,29 @@ class Role(Base):
     users: Mapped[list["User"]] = relationship(  # noqa: F821
         secondary=users_roles_association, back_populates="roles"
     )
+
+
+class EmailOTP(Base):
+    __tablename__ = "email_otps"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, insert_default=uuid.uuid4)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    user: Mapped["User"] = relationship()
+    otp_code: Mapped[str] = mapped_column(String(6))  # 6-digit OTP
+    created_at: Mapped[datetime] = mapped_column(insert_default=func.now())
+    expires_at: Mapped[datetime]
+    is_used: Mapped[bool] = mapped_column(default=False)
+    purpose: Mapped[str] = mapped_column(String(50), default="login")  # login, setup, disable
+    
+    def is_expired(self) -> bool:
+        now = datetime.now(UTC)
+        expires_at = self.expires_at
+        
+        # Handle timezone-naive expires_at by assuming it's in UTC
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+        
+        return now > expires_at
+    
+    def is_valid(self) -> bool:
+        return not self.is_used and not self.is_expired()

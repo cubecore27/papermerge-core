@@ -48,3 +48,4 @@ custom_logging.yml
 fronttend/apps/ui/public/runtime/config.js
 .ruff_cache/
 .pytest_cache/
+.envrc
