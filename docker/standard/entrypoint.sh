@@ -19,9 +19,10 @@ exec_perms_sync() {
 
 
 exec_createsuperuser() {
-  cd /auth_server_app && alembic upgrade head
+  cd /auth_server_app && poetry run alembic upgrade head
   poetry run auth-cli users create --superuser
 }
+
 
 exec_index_schema_apply() {
   echo "exec_index_schema_apply"
