@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from papermerge.core.features.users.router import router as usr_router
+from papermerge.core.features.eventlog.router import router as eventlog_router
 from papermerge.core.features.tags.router import router as tags_router
 from papermerge.core.features.groups.router import router as groups_router
 from papermerge.core.features.roles.router import router as roles_router
@@ -61,6 +62,7 @@ app.add_middleware(
     ]
 )
 
+app.include_router(eventlog_router, prefix=prefix)
 app.include_router(nodes_router, prefix=prefix)
 app.include_router(shared_nodes_router, prefix=prefix)
 app.include_router(folders_router, prefix=prefix)
