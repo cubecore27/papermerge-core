@@ -1,9 +1,9 @@
-// install this -> npm install chart.js react-chartjs-2
+// BarChart.tsx
 
-// style
-import "./chartStyle.css";
-
+import React from 'react';
 import { Bar } from 'react-chartjs-2';
+import './chartStyle.css';
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -16,30 +16,37 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const data = {
-  labels: ['Receipt', 'Application Form', 'Contracts', 'Invoices'],
-  datasets: [
-    {
-      label: 'Documents',
-      data: [300, 500, 400, 600],
-      backgroundColor: 'rgba(54, 162, 235, 0.6)',
+// Props: labels (file types), dataPoints (counts)
+interface BarChartProps {
+  labels: string[];
+  dataPoints: number[];
+}
+
+const BarChart: React.FC<BarChartProps> = ({ labels, dataPoints }) => {
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: 'File Type Count',
+        data: dataPoints,
+        backgroundColor: 'rgba(17, 171, 242, 0.86)',
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' as const },
+      title: { display: true, text: 'Document File Types Count' },
     },
-  ],
-};
+  };
 
-const options = {
-  responsive: true,
-  plugins: {
-    legend: { position: 'top' },
-    title: { display: true, text: 'User Document Upload' },
-  },
-};
-
-export default function BarChart() {
   return (
     <div className="chartCardCont">
       <Bar data={data} options={options} />
     </div>
   );
-}
+};
 
+export default BarChart;

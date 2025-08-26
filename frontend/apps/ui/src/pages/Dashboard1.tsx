@@ -44,9 +44,17 @@ const Dashboard = () => {
 
 
   // Check the structure of data
-  // console.log("homeNodeData.items", homeNodeData?.items);
+  console.log("homeNodeData.items", homeNodeData?.items);
+  // console.log("Sample document:", homeNodeData?.items?.[0]);
 
-  // Generate tag distribution data
+  // console.log("Home Node Data:", homeNodeData);
+
+  // Check the current user
+  console.log("Current User:", currentUser);
+
+
+
+  // === Generate tag distribution data
   const tagCountMap: Record<string, number> = {};
   homeNodeData?.items?.forEach(item => {
     item.tags?.forEach(tag => {
@@ -56,7 +64,46 @@ const Dashboard = () => {
   });
 
   const tagLabels = Object.keys(tagCountMap);
-  const tagValues = Object.values(tagCountMap);
+  const tagValues = Object.values(tagCountMap);// Utility: format date to 'Jan', 'Feb', etc.
+  const getMonthLabel = (dateStr: string) =>
+    new Date(dateStr).toLocaleString('default', { month: 'short' });
+
+  // Line Graph
+  const monthlyUploadMap: Record<string, number> = {};
+
+  // ==== Populate monthly upload data
+  homeNodeData?.items?.forEach(item => {
+    if (item.ctype === 'document' && (item as any).created_at) {
+      const month = getMonthLabel((item as any).created_at);
+      monthlyUploadMap[month] = (monthlyUploadMap[month] || 0) + 1;
+    }
+  });
+
+  // Optional: control order of months
+  const monthOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const chartLabels = monthOrder.filter(month => monthlyUploadMap[month]);
+  const chartValues = chartLabels.map(month => monthlyUploadMap[month]);
+  // console.log("Chart Labels:", chartLabels);
+  // console.log("Chart Values:", chartValues);
+
+  // === File Type Counts in Bar Chart
+  const fileTypeMap: Record<string, number> = {};
+
+  homeNodeData?.items?.forEach(item => {
+    if (item.ctype === 'document' && item.title) {
+      const extMatch = item.title.match(/\.(\w+)$/);
+      if (extMatch && extMatch[1]) {
+        const fileType = extMatch[1].toLowerCase();
+        fileTypeMap[fileType] = (fileTypeMap[fileType] || 0) + 1;
+      }
+    }
+  });
+
+  const fileTypeLabels = Object.keys(fileTypeMap);   // e.g. ['pdf', 'jpeg']
+  const fileTypeData = Object.values(fileTypeMap);   // e.g. [5, 3]
+  // console.log("File Type Labels:", fileTypeLabels);
+  // console.log("File Type Data:", fileTypeData);
 
   const kpiData = [
     {
@@ -74,11 +121,11 @@ const Dashboard = () => {
       value: homeDataLoading ? '...' : untaggedDocuments.toString(),
       label: 'Untagged Files'
     },
-    {
-      icon: Search,
-      value: '--',
-      label: 'Pending OCR'
-    },
+    // {
+    //   icon: Search,
+    //   value: '--',
+    //   label: 'Pending OCR'
+    // },
     {
       icon: HardDrive,
       value: '-- GB',
@@ -90,9 +137,9 @@ const Dashboard = () => {
     { icon: Upload, text: 'Upload Document', onClick: () => navigate('/home') },
     { icon: Tag, text: 'Create Tag', onClick: () => navigate('/tags') },
     { icon: Tag, text: 'Create Categories', onClick: () => navigate('/document-types') },
-    { icon: FolderOpen, text: 'Import from Folder' },
-    { icon: Scan, text: 'Scan from Device' },
-    { icon: AlertCircle, text: 'View OCR Errors' }
+    // { icon: FolderOpen, text: 'Import from Folder' },
+    // { icon: Scan, text: 'Scan from Device' },
+    // { icon: AlertCircle, text: 'View OCR Errors' }
   ];
 
   const recentActivity = [
@@ -140,28 +187,42 @@ const Dashboard = () => {
       {/* Main Content Grid */}
       <div className={styles.mainGrid}>
         <div>
+          {/* Top Chart */}
           <div className={styles.chartsGrid}>
             <div className={styles.chartCard}>
-              <h3 className={styles.chartTitle}>Document Growth</h3>
+              <h3 className={styles.chartTitle}>Document Types</h3>
               <div className={styles.chartPlaceholder}>
-                <LineChart />
+                {fileTypeLabels.length > 0 ? (
+                  <BarChart labels={fileTypeLabels} dataPoints={fileTypeData} />
+                ) : (
+                  <div className={styles.noDataText}>No documents found.</div>
+                )}
               </div>
             </div>
 
             <div className={styles.chartCard}>
               <h3 className={styles.chartTitle}>Tag Distribution</h3>
               <div className={styles.chartPlaceholder}>
-                <DoughnutChart labels={tagLabels} values={tagValues} />
+                {/* Conditionally render if there is available data */}
+                {tagValues.length > 0 ? (
+                  <DoughnutChart labels={tagLabels} values={tagValues} />
+                ) : (
+                  <div className={styles.noDataText}>No tag data available.</div>
+                )}
+
               </div>
             </div>
           </div>
 
+          {/* Bottom Chart */}
+          {/* LineChart */}
           <div className={styles.chartCard}>
-            <h3 className={styles.chartTitle}>Upload Activity by User</h3>
+            <h3 className={styles.chartTitle}>Document Growth</h3>
             <div className={styles.chartPlaceholder}>
-              <BarChart />
+              <LineChart labels={chartLabels} dataPoints={chartValues} />
             </div>
           </div>
+
         </div>
 
         {/* Quick Actions Sidebar */}
