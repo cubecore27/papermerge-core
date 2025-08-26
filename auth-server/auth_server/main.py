@@ -33,7 +33,7 @@ password_reset_service = PasswordResetService(settings, email_service)
 
 
 # Forgot password: request reset
-from fastapi import Depends
+from fastapi import Depends, Query
 from sqlalchemy.orm import Session as OrmSession
 from auth_server.db.engine import Session as DBSession
 
@@ -401,6 +401,8 @@ from datetime import datetime, timezone
 
 @app.get("/api/verify-reset-token/{token}")
 async def verify_reset_token(token: str, db: OrmSession = Depends(get_db)):
+    # debug: print received token to stdout to ensure visibility in logs
+    print(f"VERIFY_TOKEN_RECEIVED(path): {token}")
     try:
         reset_token = db.query(PasswordResetToken).filter_by(token=token).one()
     except NoResultFound:
@@ -422,4 +424,62 @@ async def verify_reset_token(token: str, db: OrmSession = Depends(get_db)):
         logger.error(f"User not found for token: {token}, user_id={reset_token.user_id}")
         raise HTTPException(status_code=404, detail="User not found")
     logger.info(f"Token valid for user: {user.username}")
+    return {"username": user.username}
+
+
+@app.get("/api/verify-reset-token")
+async def verify_reset_token_api_query(token: str = Query(None), db: OrmSession = Depends(get_db)):
+    """API-compatible query-param endpoint: /api/verify-reset-token?token=..."""
+    # debug: ensure token visible in logs
+    print(f"VERIFY_TOKEN_RECEIVED(api-query): {token}")
+    if not token:
+        raise HTTPException(status_code=400, detail="Token query parameter missing")
+    try:
+        reset_token = db.query(PasswordResetToken).filter_by(token=token).one()
+    except NoResultFound:
+        logger.error(f"Token not found (api-query): {token}")
+        raise HTTPException(status_code=401, detail="Invalid or expired reset token")
+    now = datetime.now(timezone.utc)
+    expires_at = reset_token.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if reset_token.is_used or now > expires_at:
+        logger.warning(f"Token expired or used (api-query): now={now}, expires_at={expires_at}, is_used={reset_token.is_used}")
+        raise HTTPException(status_code=401, detail="Invalid or expired reset token")
+    user = db.query(User).filter_by(id=reset_token.user_id).first()
+    if not user:
+        logger.error(f"User not found for token (api-query): {token}, user_id={reset_token.user_id}")
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"username": user.username}
+
+
+# Support query-parameter style verification links (e.g. /reset-password?token=...)
+@app.get("/verify-reset-token")
+async def verify_reset_token_query(token: str = Query(None), db: OrmSession = Depends(get_db)):
+    # debug: print received token to stdout to ensure visibility in logs
+    print(f"VERIFY_TOKEN_RECEIVED(query): {token}")
+    if not token:
+        raise HTTPException(status_code=400, detail="Token query parameter missing")
+    # Delegate to the existing logic by reusing the DB access
+    try:
+        reset_token = db.query(PasswordResetToken).filter_by(token=token).one()
+    except NoResultFound:
+        logger.error(f"Token not found (query): {token}")
+        raise HTTPException(status_code=401, detail="Invalid or expired reset token")
+    # Check if token is used or expired
+    now = datetime.now(timezone.utc)
+    expires_at = reset_token.expires_at
+    logger.info(f"Token check (query): now={now.isoformat()}, expires_at={expires_at} (tzinfo={expires_at.tzinfo}), is_used={reset_token.is_used}")
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+        logger.info(f"expires_at updated with tzinfo: {expires_at}")
+    if reset_token.is_used or now > expires_at:
+        logger.warning(f"Token expired or used (query): now={now}, expires_at={expires_at}, is_used={reset_token.is_used}")
+        raise HTTPException(status_code=401, detail="Invalid or expired reset token")
+    # Get username
+    user = db.query(User).filter_by(id=reset_token.user_id).first()
+    if not user:
+        logger.error(f"User not found for token (query): {token}, user_id={reset_token.user_id}")
+        raise HTTPException(status_code=404, detail="User not found")
+    logger.info(f"Token valid for user (query): {user.username}")
     return {"username": user.username}
