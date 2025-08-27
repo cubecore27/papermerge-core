@@ -11,7 +11,6 @@ from auth_server.db.orm import EmailOTP, User
 from auth_server.db import api as dbapi
 from auth_server.services.email import EmailService
 from auth_server.config import Settings
-from auth_server.tasks import send_otp_email_task
 import os
 
 logger = logging.getLogger(__name__)
@@ -81,6 +80,9 @@ class OTPService:
             broker = os.getenv("CELERY_BROKER_URL") or os.getenv("PAPERMERGE__REDIS__URL")
             if broker:
                 try:
+                    # import task here to avoid circular import at module load time
+                    from auth_server.tasks import send_otp_email_task
+
                     # send task with otp id so worker can load and send
                     send_otp_email_task.delay(str(email_otp.id))
                     logger.info(f"Enqueued OTP email send for user {user.username}")
