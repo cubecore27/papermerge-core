@@ -37,7 +37,7 @@ export default function Report() {
       setDocsLoading(true);
       setDocsError(null);
       try {
-        const headers = getDefaultHeaders();
+        const headers = getDefaultHeaders(); // Use headers with JWT token
         const results = await Promise.all(
           users.map(async (user: any) => {
             if (!user.home_folder_id) {
@@ -49,7 +49,7 @@ export default function Report() {
             try {
               const res = await fetch(url, {
                 credentials: "include",
-                headers
+                headers // Apply headers here
               });
               if (!res.ok) {
                 const errText = await res.text();
@@ -77,7 +77,6 @@ export default function Report() {
     if (users) fetchAllDocs();
   }, [users]);
 
-
   // === NEW: Fetch KPI Summary from API ===
   const [summaryData, setSummaryData] = useState<{
     total_uploads: number;
@@ -92,7 +91,11 @@ export default function Report() {
     const fetchSummary = async () => {
       try {
         setSummaryLoading(true);
-        const res = await fetch('http://127.0.0.1:8000/api/stats/summary/');
+        const headers = getDefaultHeaders(); // Use headers with JWT token
+        const res = await fetch('http://127.0.0.1:8000/api/stats/summary', {
+          method: 'GET',
+          headers // Apply headers here
+        });
         if (!res.ok) throw new Error('Failed to fetch summary data');
         const data = await res.json();
         setSummaryData(data);
