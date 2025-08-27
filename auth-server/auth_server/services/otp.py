@@ -11,6 +11,8 @@ from auth_server.db.orm import EmailOTP, User
 from auth_server.db import api as dbapi
 from auth_server.services.email import EmailService
 from auth_server.config import Settings
+from auth_server.tasks import send_otp_email_task
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +77,25 @@ class OTPService:
                         logger.error(f"Failed to create OTP after {max_retries} attempts: {e}")
                         return False
             
-            # Send email
+            # Enqueue OTP email send to background worker if Celery broker is provided
+            broker = os.getenv("CELERY_BROKER_URL") or os.getenv("PAPERMERGE__REDIS__URL")
+            if broker:
+                try:
+                    # send task with otp id so worker can load and send
+                    send_otp_email_task.delay(str(email_otp.id))
+                    logger.info(f"Enqueued OTP email send for user {user.username}")
+                    return True
+                except Exception as exc:
+                    logger.error(f"Failed to enqueue OTP email task: {exc}")
+                    # fallthrough to synchronous send
+
+            # Fallback: send email synchronously (same behavior as before)
             success = await self.email_service.send_otp_email(
                 email=user.email,
                 otp_code=otp_code,
-                username=user.username
+                username=user.username,
             )
-            
+
             if not success:
                 # Mark OTP as used if email failed
                 email_otp.is_used = True
