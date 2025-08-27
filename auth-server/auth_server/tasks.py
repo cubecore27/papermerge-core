@@ -5,21 +5,25 @@ from auth_server.db.orm import EmailOTP
 from auth_server.config import get_settings
 from auth_server.db.engine import Session as DBSession
 import logging
+import aiosmtplib
+import socket
+import asyncio
 
 logger = logging.getLogger(__name__)
 
 
-@app.task(bind=True, max_retries=2, default_retry_delay=10)
+@app.task(bind=True)
 def send_otp_email_task(self, otp_id: str):
     """Celery task to send OTP email for given EmailOTP id.
 
-    The task will load the OTP entry and user and attempt to send the email.
-    If sending fails, mark the OTP as used to avoid reuse.
+    This task classifies failures into transient (network/timeouts) and permanent
+    (auth/invalid recipient) and retries transient failures with exponential backoff.
+    On permanent failure the OTP is marked used so it cannot be reused.
     """
     settings = get_settings()
     email_service = EmailService(settings)
 
-    # Load OTP and user
+    session = None
     try:
         session = DBSession()
         otp_entry = session.query(EmailOTP).filter(EmailOTP.id == otp_id).first()
@@ -32,28 +36,49 @@ def send_otp_email_task(self, otp_id: str):
             logger.error(f"send_otp_email_task: user {otp_entry.user_id} not found")
             return False
 
-        # Attempt to send
-        success = None
         try:
-            # email_service methods are async; run in event loop using asyncio.run
-            import asyncio
-
-            success = asyncio.run(email_service.send_otp_email(user.email, otp_entry.otp_code, user.username))
-        except Exception as exc:
-            logger.exception(f"send_otp_email_task: exception while sending OTP: {exc}")
-            success = False
-
-        if not success:
-            # mark OTP as used to prevent reuse
+            # call async send in a new event loop
+            success = asyncio.run(
+                email_service.send_otp_email(user.email, otp_entry.otp_code, user.username)
+            )
+            if success:
+                logger.info(f"send_otp_email_task: OTP email sent to {user.email}")
+                return True
+            # If send returned False, treat as permanent failure
+            logger.error(f"send_otp_email_task: email_service reported failure for {user.email}")
             otp_entry.is_used = True
             session.commit()
-            logger.error(f"send_otp_email_task: failed to send OTP email to {user.email}")
             return False
 
-        logger.info(f"send_otp_email_task: OTP email sent to {user.email}")
-        return True
+        except aiosmtplib.errors.SMTPAuthenticationError as ex:
+            logger.error(f"send_otp_email_task: SMTP auth failed for {user.email}: {ex}")
+            # permanent failure - mark used and don't retry
+            otp_entry.is_used = True
+            session.commit()
+            return False
+        except (aiosmtplib.errors.SMTPException, socket.timeout, socket.error, asyncio.TimeoutError) as ex:
+            # transient failures - retry with exponential backoff
+            retries = self.request.retries if hasattr(self, 'request') else 0
+            max_retries = 5
+            if retries < max_retries:
+                delay = 2 ** retries
+                logger.warning(f"send_otp_email_task: transient error sending to {user.email}: {ex}. Retrying in {delay}s (attempt {retries+1}/{max_retries})")
+                raise self.retry(countdown=delay, exc=ex)
+            else:
+                logger.error(f"send_otp_email_task: exhausted retries for {user.email}: {ex}")
+                otp_entry.is_used = True
+                session.commit()
+                return False
+        except Exception as ex:
+            logger.exception(f"send_otp_email_task: unexpected error: {ex}")
+            # treat as permanent - mark used
+            otp_entry.is_used = True
+            session.commit()
+            return False
+
     finally:
         try:
-            session.close()
+            if session:
+                session.close()
         except Exception:
             pass
