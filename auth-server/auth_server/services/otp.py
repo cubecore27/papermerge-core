@@ -87,6 +87,13 @@ class OTPService:
                     send_otp_email_task.delay(str(email_otp.id))
                     logger.info(f"Enqueued OTP email send for user {user.username}")
                     return True
+                except ImportError as ie:
+                    logger.error(
+                        "Failed to enqueue OTP email task: Celery is not installed in the runtime. "
+                        "Install celery and redis packages or disable background tasks.",
+                    )
+                    logger.debug("ImportError while importing send_otp_email_task: %s", ie)
+                    # fallthrough to synchronous send
                 except Exception as exc:
                     logger.error(f"Failed to enqueue OTP email task: {exc}")
                     # fallthrough to synchronous send
