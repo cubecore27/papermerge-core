@@ -15,6 +15,7 @@ from papermerge.core.features.tags.db import api as tags_dbapi
 from papermerge.core.features.tags import schema as tags_schema
 from papermerge.core.exceptions import EntityNotFound
 from papermerge.core.routers.common import OPEN_API_GENERIC_JSON_DETAIL
+from papermerge.core.features.useractivity.db.activity import Activity
 from .types import PaginatedQueryParams
 
 router = APIRouter(
@@ -44,16 +45,6 @@ async def retrieve_tags_without_pagination(
     db_session: AsyncSession = Depends(get_db),
 ):
     """Get all tags without pagination
-
-    If non-empty `group_id` parameter is supplied it will
-    return all tags belonging to this group if and only if current
-    user belongs to this group.
-    If non-empty `group_id` parameter is provided and current
-    user does not belong to this group - http status code 403 (Forbidden) will
-    be raised.
-    If `group_id` parameter is not provided (empty) then
-    will return all tags of the current user.
-
 
     Required scope: `{scope}`
     """
@@ -107,6 +98,14 @@ async def get_tag_details(
     except EntityNotFound:
         raise HTTPException(status_code=404, detail="Does not exists")
 
+    # Log activity
+    activity = Activity(
+        user_id=user.id,
+        action="get_tag_details",
+    )
+    db_session.add(activity)
+    await db_session.commit()
+
     return tag
 
 
@@ -130,12 +129,6 @@ async def create_tag(
 ) -> tags_schema.Tag:
     """Creates tag
 
-    If attribute `group_id` is present, tag will be owned
-    by respective group, otherwise ownership is set to current user.
-    If attribute `group_id` is present then current user should
-    belong to that group, otherwise http status 403 (Forbidden) will
-    be raised.
-
     Required scope: `{scope}`
     """
     if not attrs.group_id:
@@ -151,6 +144,14 @@ async def create_tag(
 
     if error:
         raise HTTPException(status_code=400, detail=error.model_dump())
+
+    # Log activity
+    activity = Activity(
+        user_id=user.id,
+        action="create_tag",
+    )
+    db_session.add(activity)
+    await db_session.commit()
 
     return tag
 
@@ -172,6 +173,14 @@ async def delete_tag(
         await tags_dbapi.delete_tag(db_session, tag_id=tag_id)
     except EntityNotFound:
         raise HTTPException(status_code=404, detail="Does not exists")
+
+    # Log activity
+    activity = Activity(
+        user_id=user.id,
+        action="delete_tag",
+    )
+    db_session.add(activity)
+    await db_session.commit()
 
 
 @router.patch(
@@ -210,5 +219,13 @@ async def update_tag(
 
     if error:
         raise HTTPException(status_code=400, detail=error.model_dump())
+
+    # Log activity
+    activity = Activity(
+        user_id=user.id,
+        action="update_tag",
+    )
+    db_session.add(activity)
+    await db_session.commit()
 
     return tag

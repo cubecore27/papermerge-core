@@ -16,7 +16,7 @@ from papermerge.core import exceptions as exc
 from papermerge.core.db.engine import get_db
 from papermerge.core.features.document.response import DocumentFileResponse
 from papermerge.core.features.useractivity.db.orm import UserActivityStats
-
+from papermerge.core.features.useractivity.db.activity import Activity
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/document-versions", tags=["document-versions"])
@@ -140,14 +140,32 @@ async def get_doc_ver_download_url(
         )
 
         # --- Log getting presigned download URL ---
-        new_activity = UserActivityStats(
-            user_id=user.id,
-            node_id=doc_id,  # <- use node ID
-            action_type="document_download_url",
-            timestamp=datetime.utcnow(),
-        )
-        db_session.add(new_activity)
-        await db_session.commit()
+        try:
+            # Log using UserActivityStats
+            new_user_activity = UserActivityStats(
+                user_id=user.id,
+                node_id=doc_id,  # <- use node ID
+                action_type="document_download_url",
+                timestamp=datetime.utcnow(),
+            )
+            db_session.add(new_user_activity)
+
+            # Log using Activity
+            db_session.add(
+                Activity(
+                    user_id=user.id,
+                    node_id=doc_id,
+                    version_id=doc_ver_id,
+                    action="document_download_url",
+                    created_at=datetime.utcnow(),
+                )
+            )
+
+            # Commit the transaction
+            await db_session.commit()
+        except Exception as e:
+            await db_session.rollback()
+            logger.warning(f"Failed to log download-url activity for user {user.id}: {e}")
 
     except NoResultFound:
         raise exc.HTTP404NotFound()

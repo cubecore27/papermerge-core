@@ -9,6 +9,7 @@ from .features.document_types.db.orm import DocumentType, DocumentTypeCustomFiel
 from .features.shared_nodes.db.orm import SharedNode
 from .features.eventlog.db.orm import EventLog
 from .features.useractivity.db.orm import UserActivityStats
+from .features.useractivity.db.activity import Activity  # Import the new Activity model
 
 __all__ = [
     'User',
@@ -30,7 +31,8 @@ __all__ = [
     'DocumentTypeCustomField',
     'SharedNode',
     'EventLog',
-    'UserActivityStats'
+    'UserActivityStats',
+    'Activity'  # Add Activity to the __all__ list
 ]
 
 

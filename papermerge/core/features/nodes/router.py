@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import datetime
 from typing import Annotated, Iterable, Union
 from uuid import UUID
 
@@ -21,6 +22,7 @@ from papermerge.core.types import PaginatedResponse
 from papermerge.core.db import common as dbapi_common
 from papermerge.core import exceptions as exc
 from papermerge.core.db.engine import get_db
+from papermerge.core.features.useractivity.db.activity import Activity  # <-- Added import
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 
@@ -213,7 +215,7 @@ async def update_node(
 )
 @utils.docstring_parameter(scope=scopes.NODE_DELETE)
 async def delete_nodes(
-    list_of_uuids: list[UUID],
+    list_of_uuids: list[uuid.UUID],
     user: Annotated[
         schema.User, Security(get_current_user, scopes=[scopes.NODE_DELETE])
     ],
@@ -223,10 +225,25 @@ async def delete_nodes(
 
     Required scope: `{scope}`
 
-    Returns a list of UUIDs of actually deleted nodes.
-    In case nothing was deleted (e.g. no nodes with specified UUIDs
-    were found) - will return an empty list.
+    Logs an attempt to delete nodes in the Activity table.
     """
+    # Log the deletion attempt for each node
+    try:
+        for node_id in list_of_uuids:
+            db_session.add(
+                Activity(
+                    user_id=user.id,
+                    node_id=node_id,  # Log the node_id even if there's no FK
+                    action="node_delete_attempt",
+                    created_at=datetime.utcnow(),
+                )
+            )
+        await db_session.commit()
+    except Exception as e:
+        await db_session.rollback()
+        logger.warning(f"Failed to log delete attempt for user {user.id}: {e}")
+
+    # Check permissions and delete nodes
     for node_id in list_of_uuids:
         if not await dbapi_common.has_node_perm(
             db_session,

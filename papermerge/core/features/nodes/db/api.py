@@ -255,6 +255,16 @@ async def assign_node_tags(
     try:
         node.tags = db_tags.all()
         await db_session.commit()
+
+        # Log activity for attaching tags
+        activity = orm.Activity(
+            user_id=user_id,
+            node_id=node_id,
+            action="attach_tags",
+        )
+        db_session.add(activity)
+        await db_session.commit()
+
     except Exception as e:
         error = schema.Error(messages=[str(e)])
         return None, error
@@ -339,6 +349,16 @@ async def remove_node_tags(
     try:
         await db_session.execute(delete_stmt)
         await db_session.commit()
+
+        # Log activity for removing tags
+        activity = orm.Activity(
+            user_id=user_id,
+            node_id=node_id,
+            action="remove_tags",
+        )
+        db_session.add(activity)
+        await db_session.commit()
+
     except Exception as e:
         error = schema.Error(messages=[str(e)])
         return None, error

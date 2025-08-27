@@ -34,6 +34,7 @@ from papermerge.core.db import common as dbapi_common
 from papermerge.core.routers.common import OPEN_API_GENERIC_JSON_DETAIL
 from papermerge.core.db.engine import get_db
 from papermerge.core.features.useractivity.db.orm import UserActivityStats
+from papermerge.core.features.useractivity.db.activity import Activity  # Import the Activity model
 
 router = APIRouter(
     prefix="/documents",
@@ -162,26 +163,10 @@ async def upload_file(
 
     Document model must be created beforehand via `POST /nodes` endpoint
     provided with `ctype` = `document`.
-
-    In order to upload file cURL:
-
-        $ ls
-        booking.pdf
-
-        $ curl <server url>/documents/<uuid>/upload
-        --form "file=@booking.pdf;type=application/pdf"
-        -H "Authorization: Bearer <your token>"
-
-    Note that `file=` is important and must be exactly that, it is the name
-    of the field in `multipart/form-data`. In other words, something like
-    '--form "data=@booking.pdf..." won't work.
-    The uploaded file is encoded as `multipart/form-data` and is sent
-    in POST request body.
-
-    Obviously you can upload files directly via swagger UI.
     """
     content = file.file.read()
 
+    # Check if the user has permission to upload
     if not await dbapi_common.has_node_perm(
         db_session,
         node_id=document_id,
@@ -190,6 +175,7 @@ async def upload_file(
     ):
         raise exc.HTTP403Forbidden()
 
+    # Perform the upload
     doc, error = await dbapi.upload(
         db_session,
         document_id=document_id,
@@ -202,14 +188,25 @@ async def upload_file(
     if error:
         raise HTTPException(status_code=400, detail=error.model_dump())
 
-    # Add a record to UserActivityStats
-    new_activity = UserActivityStats(
+    # Log the upload activity in UserActivityStats
+    user_activity_log = UserActivityStats(
         user_id=user.id,
         node_id=document_id,
         action_type="document_upload",
         timestamp=datetime.utcnow(),
     )
-    db_session.add(new_activity)
+    db_session.add(user_activity_log)
+
+    # Log the upload activity in Activity (ignoring metadata)
+    activity_log = Activity(
+        user_id=user.id,
+        node_id=document_id,
+        action="document_upload",
+        created_at=datetime.utcnow(),
+    )
+    db_session.add(activity_log)
+
+    # Commit both logs
     await db_session.commit()
 
     return doc
