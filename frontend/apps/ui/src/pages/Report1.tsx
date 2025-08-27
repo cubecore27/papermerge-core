@@ -17,67 +17,33 @@ import {
 } from 'lucide-react';
 
 // Redux & API
-
-import { useGetUsersQuery } from '@/features/users/apiSlice';
+import { useGetPaginatedNodesQuery } from '@/features/nodes/apiSlice';
+import { useAppSelector } from '@/app/hooks';
+import { selectCurrentUser } from '@/slices/currentUser';
 import DoughnutChart from '@/components/Charts/Doughnut';
-import { getDefaultHeaders } from '@/utils';
 
 
 export default function Report() {
-  // Fetch all users
-  const { data: users, isLoading: usersLoading, error: usersError } = useGetUsersQuery();
+  // current user
+  const currentUser = useAppSelector(selectCurrentUser);
 
-  // State for all documents
-  const [allDocs, setAllDocs] = useState<any[]>([]);
-  const [docsLoading, setDocsLoading] = useState(true);
-  const [docsError, setDocsError] = useState<null | string>(null);
-
-  useEffect(() => {
-    const fetchAllDocs = async () => {
-      if (!users) return;
-      setDocsLoading(true);
-      setDocsError(null);
-      try {
-        const headers = getDefaultHeaders();
-        const results = await Promise.all(
-          users.map(async (user: any) => {
-            if (!user.home_folder_id) {
-              console.warn(`User ${user.username} has no home_folder_id`);
-              return [];
-            }
-            const url = `http://127.0.0.1:8000/api/nodes/${user.home_folder_id}?page_number=1&page_size=1000&order_by=title`;
-            console.log(`Fetching: ${url}`);
-            try {
-              const res = await fetch(url, {
-                credentials: "include",
-                headers
-              });
-              if (!res.ok) {
-                const errText = await res.text();
-                const msg = `Failed to fetch for ${user.username} (${user.id}): status ${res.status} - ${errText}`;
-                console.error(msg);
-                throw new Error(msg);
-              }
-              const data = await res.json();
-              return (data.items || []).map((doc: any) => ({ ...doc, _user: user }));
-            } catch (err) {
-              const msg = `Exception for user ${user.username} (${user.id}): ${err}`;
-              console.error(msg);
-              throw new Error(msg);
-            }
-          })
-        );
-        setAllDocs(results.flat());
-      } catch (e: any) {
-        console.error('Error fetching documents:', e);
-        setDocsError(e?.message || String(e));
-      } finally {
-        setDocsLoading(false);
-      }
-    };
-    if (users) fetchAllDocs();
-  }, [users]);
-
+  // Fetch the data
+  const {
+    data: homeNodeData,
+    isLoading,
+    error
+  } = useGetPaginatedNodesQuery(
+    {
+      nodeID: currentUser?.home_folder_id || '',
+      page_number: 1,
+      page_size: 1000,
+      sortDir: 'az',
+      sortColumn: 'title'
+    },
+    {
+      skip: !currentUser?.home_folder_id
+    }
+  );
 
   // === NEW: Fetch KPI Summary from API ===
   const [summaryData, setSummaryData] = useState<{
@@ -108,21 +74,21 @@ export default function Report() {
     fetchSummary();
   }, []);
 
-  // console.log('Summary state:', summaryData);
+  console.log('Summary state:', summaryData);
 
-  // Aggregate all docs for table
-  const documentRows = allDocs.map(file => ({
-    timestamp: 'N/A',
-    // user: file._user ? `${file._user.username} (${file._user.id})` : (file.user_id ? `User: ${file.user_id}` : 'Unknown'),
-    user: file._user?.username || (file.user_id ? `User: ${file.user_id}` : 'Unknown'),
+  // Fetch All Documents
+  const docs = homeNodeData?.items || [];
+  const documentRows = docs.map(file => ({
+    timestamp: 'N/A', // No date info available
+    user: file.user_id ? `User: ${file.user_id}` : 'Unknown',
     action: 'Uploaded',
     file: file.title || 'Untitled',
     status: file.ocr_status || 'Available',
   }));
 
-  // === File Type Counts in Bar Chart (all docs)
+  // === File Type Counts in Bar Chart
   const fileTypeMap: Record<string, number> = {};
-  allDocs.forEach(item => {
+  homeNodeData?.items?.forEach(item => {
     if (item.ctype === 'document' && item.title) {
       const extMatch = item.title.match(/\.(\w+)$/);
       if (extMatch && extMatch[1]) {
@@ -131,8 +97,9 @@ export default function Report() {
       }
     }
   });
-  const fileTypeLabels = Object.keys(fileTypeMap);
-  const fileTypeData = Object.values(fileTypeMap);
+
+  const fileTypeLabels = Object.keys(fileTypeMap);   // e.g. ['pdf', 'jpeg']
+  const fileTypeData = Object.values(fileTypeMap);   // e.g. [5, 3]
 
   // Populate Stats Card
   const kpiCardData = [
@@ -164,16 +131,8 @@ export default function Report() {
     tooltip: 'Total storage space used by your documents'
   };
 
-  if (usersLoading || docsLoading) return <div className={styles.reportPage}>Loading report...</div>;
-  if (usersError || docsError) {
-    return (
-      <div className={styles.reportPage} style={{ color: 'red' }}>
-        <div>Error loading report.</div>
-        {usersError && <pre>Users error: {JSON.stringify(usersError, null, 2)}</pre>}
-        {docsError && <pre>Docs error: {docsError}</pre>}
-      </div>
-    );
-  }
+  if (isLoading) return <div className={styles.reportPage}>Loading report...</div>;
+  if (error) return <div className={styles.reportPage}>Error loading report.</div>;
 
   return (
     <div className={styles.reportPage}>
@@ -221,7 +180,7 @@ export default function Report() {
               <tr>
                 <th title="Date and time of the action">Timestamp</th>
                 <th title="User who performed the action">User</th>
-                {/* <th title="Type of action (Import, Export, etc.)">Action</th> */}
+                <th title="Type of action (Import, Export, etc.)">Action</th>
                 <th title="Name of the file affected">File Name</th>
                 <th title="Result or outcome of the action">Status</th>
               </tr>
@@ -231,7 +190,7 @@ export default function Report() {
                 <tr key={idx}>
                   <td>{doc.timestamp}</td>
                   <td>{doc.user}</td>
-                  {/* <td>{doc.action}</td> */}
+                  <td>{doc.action}</td>
                   <td>{doc.file}</td>
                   <td>{doc.status}</td>
                 </tr>

@@ -88,6 +88,7 @@ async def get_descendants(
 
 
 async def has_node_perm(
+    # --- PATCH NOTE: To allow superuser bypass, add is_superuser param and return True if set. ---
     db_session: AsyncSession,
     node_id: UUID,
     codename: str,
