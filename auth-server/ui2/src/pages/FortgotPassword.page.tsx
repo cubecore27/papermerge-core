@@ -11,8 +11,9 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Simple validation
@@ -22,10 +23,30 @@ export default function ForgotPassword() {
     }
 
     setError('');
-    setSubmitted(true);
+    setLoading(true);
+    setSubmitted(false);
 
-    // You can trigger a request to your backend here
-    console.log('Submitting email for password reset:', email);
+    try {
+      const response = await fetch('/forgot-password/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.detail || 'Failed to send reset link.');
+        setSubmitted(false);
+      } else {
+        setSubmitted(true);
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+      setSubmitted(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,7 +64,6 @@ export default function ForgotPassword() {
           We’ll send password reset instructions to your registered email address.
         </p>
 
-
         <Paper withBorder shadow="md" p={30} mt={30} radius="md">
           <form onSubmit={handleSubmit} className={styles.form}>
             <label htmlFor="email" className={styles.label}>Email Address</label>
@@ -54,6 +74,7 @@ export default function ForgotPassword() {
               placeholder="Enter your email address."
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
             />
 
             {error && <p className={styles.error}>{error}</p>}
@@ -61,8 +82,8 @@ export default function ForgotPassword() {
               <p className={styles.success}>Reset link sent to your email!</p>
             )}
 
-            <button type="submit" className={styles.submitButton}>
-              Send Reset Link
+            <button type="submit" className={styles.submitButton} disabled={loading}>
+              {loading ? 'Sending...' : 'Send Reset Link'}
             </button>
           </form>
           <div className={styles.fpButtonBack} onClick={() => navigate(-1)}>Back to Login</div>

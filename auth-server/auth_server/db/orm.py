@@ -182,6 +182,9 @@ class Role(Base):
     )
 
 
+
+
+# Email OTP model (restored for alembic compatibility)
 class EmailOTP(Base):
     __tablename__ = "email_otps"
 
@@ -197,12 +200,34 @@ class EmailOTP(Base):
     def is_expired(self) -> bool:
         now = datetime.now(UTC)
         expires_at = self.expires_at
-        
         # Handle timezone-naive expires_at by assuming it's in UTC
         if expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=UTC)
-        
         return now > expires_at
     
     def is_valid(self) -> bool:
         return not self.is_used and not self.is_expired()
+
+# Password reset token model
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, insert_default=uuid.uuid4)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    user: Mapped["User"] = relationship()
+    token: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(insert_default=func.now())
+    expires_at: Mapped[datetime]
+    is_used: Mapped[bool] = mapped_column(default=False)
+
+    def is_expired(self) -> bool:
+        now = datetime.now(UTC)
+        expires_at = self.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+        return now > expires_at
+
+    def is_valid(self) -> bool:
+        return not self.is_used and not self.is_expired()
+
+# ...existing code...
