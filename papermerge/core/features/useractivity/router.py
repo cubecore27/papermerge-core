@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, Security
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, join
 from sqlalchemy.sql import text
+from sqlalchemy.sql import func
 
 from papermerge.core.db.engine import get_db
-from papermerge.core.orm import Activity, User  # Correct import for Activity and User
+from papermerge.core.orm import Activity, User, UserActivityStats  # Correct import for Activity and User
 from papermerge.core.features.auth import get_current_user
 from papermerge.core import schema
 
