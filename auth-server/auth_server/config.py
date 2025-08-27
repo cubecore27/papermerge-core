@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     papermerge__email__smtp_use_tls: bool = False
     papermerge__email__smtp_start_tls: bool = True
     papermerge__email__from_address: str = "noreply@papermerge.com"
+    # Timeout (in seconds) for SMTP operations (connect/send). Keep low to avoid upstream timeouts.
+    papermerge__email__smtp_timeout: int = 10
 
     # Frontend URL for password reset links
     papermerge__frontend__url: str = "http://localhost:3600"

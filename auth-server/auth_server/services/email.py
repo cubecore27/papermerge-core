@@ -1,5 +1,6 @@
 
 import logging
+import asyncio
 import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -54,15 +55,28 @@ class EmailService:
             html_part = MIMEText(html_content, "html")
             message.attach(text_part)
             message.attach(html_part)
-            await aiosmtplib.send(
-                message,
+            # Use SMTP client with explicit timeout and starttls support.
+            timeout = int(getattr(self.settings, "papermerge__email__smtp_timeout", 10))
+            smtp = aiosmtplib.SMTP(
                 hostname=self.settings.papermerge__email__smtp_host,
                 port=self.settings.papermerge__email__smtp_port,
-                username=self.settings.papermerge__email__smtp_username,
-                password=self.settings.papermerge__email__smtp_password,
-                use_tls=self.settings.papermerge__email__smtp_use_tls,
+                timeout=timeout,
                 start_tls=self.settings.papermerge__email__smtp_start_tls,
             )
+            try:
+                await asyncio.wait_for(smtp.connect(), timeout=timeout)
+                if self.settings.papermerge__email__smtp_username and self.settings.papermerge__email__smtp_password:
+                    await asyncio.wait_for(
+                        smtp.login(self.settings.papermerge__email__smtp_username, self.settings.papermerge__email__smtp_password),
+                        timeout=timeout,
+                    )
+                await asyncio.wait_for(smtp.send_message(message), timeout=timeout)
+            finally:
+                try:
+                    await smtp.quit()
+                except Exception:
+                    # ignore quit errors
+                    pass
             logger.info(f"Password reset email sent successfully to {email}")
             return True
         except Exception as e:
@@ -119,15 +133,28 @@ class EmailService:
             html_part = MIMEText(html_content, "html")
             message.attach(text_part)
             message.attach(html_part)
-            await aiosmtplib.send(
-                message,
+            # Use SMTP client with explicit timeout and starttls support.
+            timeout = int(getattr(self.settings, "papermerge__email__smtp_timeout", 10))
+            smtp = aiosmtplib.SMTP(
                 hostname=self.settings.papermerge__email__smtp_host,
                 port=self.settings.papermerge__email__smtp_port,
-                username=self.settings.papermerge__email__smtp_username,
-                password=self.settings.papermerge__email__smtp_password,
-                use_tls=self.settings.papermerge__email__smtp_use_tls,
+                timeout=timeout,
                 start_tls=self.settings.papermerge__email__smtp_start_tls,
             )
+            try:
+                await asyncio.wait_for(smtp.connect(), timeout=timeout)
+                if self.settings.papermerge__email__smtp_username and self.settings.papermerge__email__smtp_password:
+                    await asyncio.wait_for(
+                        smtp.login(self.settings.papermerge__email__smtp_username, self.settings.papermerge__email__smtp_password),
+                        timeout=timeout,
+                    )
+                await asyncio.wait_for(smtp.send_message(message), timeout=timeout)
+            finally:
+                try:
+                    await smtp.quit()
+                except Exception:
+                    # ignore quit errors
+                    pass
             logger.info(f"OTP email sent successfully to {email}")
             return True
         except Exception as e:
