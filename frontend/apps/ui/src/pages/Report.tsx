@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 
 // Redux & API
-
 import { useGetUsersQuery } from '@/features/users/apiSlice';
 import DoughnutChart from '@/components/Charts/Doughnut';
 import { getDefaultHeaders } from '@/utils';
@@ -88,6 +87,7 @@ export default function Report() {
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [summaryError, setSummaryError] = useState(false);
 
+  // Fetch all the users actions
   useEffect(() => {
     const fetchSummary = async () => {
       try {

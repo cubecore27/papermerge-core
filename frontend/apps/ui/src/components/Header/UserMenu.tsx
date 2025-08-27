@@ -23,6 +23,8 @@ export default function UserMenu() {
   const user = useSelector(selectCurrentUser) as User;
   const { t } = useTranslation();
 
+  console.log("🧑 Current user:", user);
+
   const onSignOutClicked = () => {
     Cookies.remove("access_token");
     let a = document.createElement("a");
@@ -51,12 +53,20 @@ export default function UserMenu() {
       </Menu.Target>
       <Menu.Dropdown>
         {/* Added Settings item */}
-        <Menu.Item component="a" href="/settings">
+        {user.is_superuser && (
+          <Menu.Item component="a" href="/settings">
+            <Group>
+              <IconSettings />
+              {t("Settings")}
+            </Group>
+          </Menu.Item>
+        )}
+        {/* <Menu.Item component="a" href="/settings">
           <Group>
             <IconSettings />
-            {t("Settings")} {/* You can translate this in your i18n files */}
+            {t("Settings")} 
           </Group>
-        </Menu.Item>
+        </Menu.Item> */}
 
         {/* API Documentation */}
         <Menu.Item>
