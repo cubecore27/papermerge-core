@@ -1,5 +1,6 @@
 version: "3.9"
 # docker build -t papermerge-core-ocr:standard -f docker/standard/Dockerfile .
+# dos2unix docker/standard/entrypoint.sh
 services:
   papermerge:
     image: papermerge-core-ocr:standard

@@ -59,7 +59,29 @@ export default function Report() {
     const fetchSummary = async () => {
       try {
         setSummaryLoading(true);
-        const res = await fetch('http://127.0.0.1:8000/api/stats/summary/');
+
+        // Automatically fetch the token from cookies
+        const getCookie = (name: string) => {
+          const value = `; ${document.cookie}`;
+          const parts = value.split(`; ${name}=`);
+          if (parts.length === 2) return parts.pop()?.split(';').shift();
+          return null;
+        };
+
+        const token = getCookie('access_token'); // Replace 'authToken' with the actual cookie name used in your app
+
+        if (!token) {
+          throw new Error('No authentication token found in cookies');
+        }
+
+        const res = await fetch('http://127.0.0.1:8000/api/stats/summary/', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
         if (!res.ok) throw new Error('Failed to fetch summary data');
         const data = await res.json();
         setSummaryData(data);
