@@ -17,7 +17,8 @@ export default function DoughnutChart({ labels, values }: Props) {
     labels,
     datasets: [
       {
-        label: "Tag Distribution",
+        // label: "Tag Distribution",
+        label: "Item Distribution",
         data: values,
         backgroundColor: [
           "#4BC0C0",
@@ -35,7 +36,7 @@ export default function DoughnutChart({ labels, values }: Props) {
     responsive: true,
     plugins: {
       legend: { position: "right" },
-      title: { display: true, text: "Document Tags" },
+      title: { display: true, text: "Item Distribution" },
     },
   };
 

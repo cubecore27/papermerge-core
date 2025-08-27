@@ -53,13 +53,17 @@ async def get_node(
     if params.order_by:
         order_by = [item.strip() for item in params.order_by.split(",")]
 
-    if not await dbapi_common.has_node_perm(
-        db_session,
-        node_id=parent_id,
-        codename=scopes.NODE_VIEW,
-        user_id=user.id,
-    ):
-        raise exc.HTTP403Forbidden()
+
+    # --- PATCH: Allow superusers to access any node ---
+    if not user.is_superuser:
+        if not await dbapi_common.has_node_perm(
+            db_session,
+            node_id=parent_id,
+            codename=scopes.NODE_VIEW,
+            user_id=user.id,
+        ):
+            raise exc.HTTP403Forbidden()
+    # --- END PATCH ---
 
     nodes = await nodes_dbapi.get_paginated_nodes(
         db_session=db_session,

@@ -1,14 +1,14 @@
-import { AppShell } from "@mantine/core"
+import {AppShell} from "@mantine/core"
 import "@mantine/core/styles.css"
 import "@mantine/dates/styles.css"
-import { useViewportSize } from "@mantine/hooks"
-import { useEffect, useRef } from "react"
-import { useDispatch, useSelector } from "react-redux"
-import { Outlet, useLocation, useNavigate } from "react-router-dom"
+import {useViewportSize} from "@mantine/hooks"
+import {useEffect, useRef} from "react"
+import {useDispatch, useSelector} from "react-redux"
+import {Outlet, useLocation, useNavigate} from "react-router-dom"
 
 import Header from "@/components/Header/Header"
 import NavBar from "@/components/NavBar"
-import { updateOutlet } from "@/features/ui/uiSlice"
+import {updateOutlet} from "@/features/ui/uiSlice"
 import {
   selectCurrentUser,
   selectCurrentUserError,
@@ -16,11 +16,11 @@ import {
 } from "@/slices/currentUser"
 
 import Uploader from "@/components/Uploader"
-import { selectNavBarWidth } from "@/features/ui/uiSlice"
+import {selectNavBarWidth} from "@/features/ui/uiSlice"
 import "./App.css"
 
 function App() {
-  const { height, width } = useViewportSize()
+  const {height, width} = useViewportSize()
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch()
@@ -31,20 +31,28 @@ function App() {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    /* Check if the user is authenticated and the app is ready */
-    if (status === "succeeded" && user) {
-      /* If the user is on the root route "/", redirect to "/dashboard" */
-      if (location.pathname === "/") {
-        navigate("/dashboard")
-      }
-      
-      // Optional: You can keep this if you want the home folder redirection to work.
-      // But for now, we redirect all root access to dashboard.
-      if (location.pathname === "/home" || location.pathname === "/home/") {
-        navigate(`/home/${user.home_folder_id}`)
-      }
+    /* notice *EXACT match* of the root route.
+      Without it, user will always be redirected to home folder,
+      even when he/she opens a document via direct url pasting in browser */
+    if (status == "succeeded" && user && location.pathname == "/") {
+      /*
+      (1)
+      This code addresses following problem: what happens when user lands
+      on root route (i.e. "/")?
+      Without any code change - the app shell will be render an empty outlet!!!
+      What we need though is to render "home" folder by default.
+    */
+      navigate(`/home/${user.home_folder_id}`)
     }
-  }, [status, user, location.pathname, navigate])
+    if (status == "succeeded" && user && location.pathname == "/home") {
+      // see (1)
+      navigate(`/home/${user.home_folder_id}`)
+    }
+    if (status == "succeeded" && user && location.pathname == "/home/") {
+      // see (2)
+      navigate(`/home/${user.home_folder_id}`)
+    }
+  }, [status])
 
   useEffect(() => {
     if (ref?.current) {
@@ -56,14 +64,14 @@ function App() {
     }
   }, [width, height])
 
-  if (status === "failed") {
+  if (status == "failed") {
     return <>{error}</>
   }
 
   return (
     <>
       <AppShell
-        header={{ height: 60 }}
+        header={{height: 60}}
         navbar={{
           width: navBarWidth,
           breakpoint: 0

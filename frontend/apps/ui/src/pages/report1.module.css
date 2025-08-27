@@ -1,26 +1,35 @@
+/* Layout */
 .reportPage {
   padding: 24px;
   min-height: 100vh;
 }
 
+/* Header Section */
 .rpHeader {
   margin-bottom: 2rem;
 }
 
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
 .title {
   font-size: 2rem;
-  margin-bottom: 0.2rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
 }
 
 .subtitle {
-  color: #666;
+  color: #6b7280;
+  /* Tailwind gray-500 */
+  font-size: 1rem;
 }
 
-.sectionTitle {
-  font-size: 1.4rem;
-  margin-bottom: 1rem;
-}
-
+/* Section Wrappers */
 .statsSection,
 .logsSection,
 .exportSection {
@@ -31,12 +40,87 @@
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  color: #111827;
+  /* Tailwind gray-900 */
+}
+
+/* Stat Grid */
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
 }
 
+/* Logs Table */
+.reportTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background-color: #fff;
+  font-size: 0.95rem;
+}
+
+.reportTable th,
+.reportTable td {
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.reportTable th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+  color: #374151;
+}
+
+.reportTable tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+/* Chart & Breakdown Section */
+.chartGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.chartContainer {
+  flex: 1 1 300px;
+  max-width: 400px;
+}
+
+/* Button Section */
+.buttonGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.exportButton {
+  background-color: #4f46e5;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.exportButton:hover {
+  background-color: #4338ca;
+}
+
+
+/* Stat Cards */
 .statCard {
   padding: 1rem;
   border-radius: 8px;
@@ -45,14 +129,21 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-3px);
 }
 
 .statCard h3 {
   margin: 0.5rem 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 .statCard p {
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: bold;
   margin: 0;
 }
@@ -64,92 +155,39 @@
   margin-bottom: 0.5rem;
 }
 
-/* Colors */
+/* Color Themes */
 .import {
-  background-color: #3b82f6; /* blue */
+  background-color: #3b82f6;
 }
 
 .export {
-  background-color: #6366f1; /* indigo */
+  background-color: #6366f1;
 }
 
 .upload {
-  background-color: #10b981; /* green */
+  background-color: #10b981;
 }
 
 .download {
-  background-color: #0ea5e9; /* sky blue */
+  background-color: #0ea5e9;
 }
 
 .deleted {
-  background-color: #ef4444; /* red */
+  background-color: #ef4444;
 }
 
 .pdf {
-  background-color: #d97706; /* amber */
+  background-color: #d97706;
 }
 
 .word {
-  background-color: #4b5563; /* gray */
+  background-color: #4b5563;
 }
 
 .excel {
-  background-color: #22c55e; /* emerald */
+  background-color: #22c55e;
 }
 
 .image {
-  background-color: #8b5cf6; /* violet */
-}
-
-/* Table styles */
-.reportTable {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-  background-color: #fff;
-}
-
-.reportTable th,
-.reportTable td {
-  border: 1px solid #ddd;
-  padding: 0.75rem;
-  text-align: left;
-}
-
-.reportTable th {
-  background-color: #f1f1f1;
-  font-weight: 600;
-}
-
-/* Export Section */
-.exportSection {
-  display: flex;
-  flex-direction: column;
-}
-
-.buttonGroup {
-  display: flex ;
-  justify-content: end;
-}
-
-/* Buttons */
-.exportButton {
-  margin-right: 1rem;
-  padding: 0.75rem 1.2rem;
-  background-color: #0070f3;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.exportButton:hover {
-  background-color: #005bb5;
-}
-
-.buttonGroup {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+  background-color: #8b5cf6;
 }
