@@ -93,9 +93,9 @@ export const DropFilesModal = ({
 
         {/* Notes textarea */}
         <br />
-        <Textarea label="Add Notes"/>
+        {/* <Textarea label="Add Notes"/> */}
         <br />
-        <DatePickerInput label="Add Document Expiry Date"/>
+        {/* <DatePickerInput label="Add Document Expiry Date"/> */}
 
         {!runtimeConfig.ocr__automatic && (
           <ScheduleOCRProcessCheckbox

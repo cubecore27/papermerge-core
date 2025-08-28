@@ -200,24 +200,15 @@ const Dashboard: React.FC = () => {
   ];
 
   // === Recent Activity ===
-  // Sort activities from latest to oldest and show only the 5 most recent
-  const recentActivity = activities
-    .slice()
-    .sort((a, b) => {
-      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
-      return bTime - aTime;
-    })
-    .slice(0, 5)
-    .map((act, idx) => ({
-      // Use action for icon, fallback to Upload
-      icon: Upload,
-      text: act.action ? `${act.action.replace(/_/g, ' ')}` : 'Activity',
-      time: act.created_at ? new Date(act.created_at).toLocaleString() : '',
-      tooltip: act.activity_metadata ? JSON.stringify(act.activity_metadata) : '',
-      username: act.username || '',
-      node_id: act.node_id || '',
-    }));
+  const recentActivity = activities.map((act, idx) => ({
+    // Use action for icon, fallback to Upload
+    icon: Upload,
+    text: act.action ? `${act.action.replace(/_/g, ' ')}` : 'Activity',
+    time: act.created_at ? new Date(act.created_at).toLocaleString() : '',
+    tooltip: act.activity_metadata ? JSON.stringify(act.activity_metadata) : '',
+    username: act.username || '',
+    node_id: act.node_id || '',
+  }));
 
   // === System Health (placeholder, unchanged) ===
   const systemHealth = [
@@ -335,7 +326,7 @@ const Dashboard: React.FC = () => {
             </div>
           ))}
         </div>
-        {/* <div className={styles.card} title="Current system health status">
+        <div className={styles.card} title="Current system health status">
           <h2 className={styles.sectionTitle}>System Health</h2>
           {systemHealth.map((item, index) => (
             <div key={index} className={styles.healthItem} title={item.tooltip}>
@@ -374,7 +365,7 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
           ))}
-        </div> */}
+        </div>
       </div>
     </div>
   );

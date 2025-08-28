@@ -23,33 +23,38 @@ ChartJS.register(
   Legend
 );
 
-const data = {
-  labels: ["Jan", "Feb", "Mar", "Apr"],
-  datasets: [
-    {
-      label: "Documents",
-      data: [150, 200, 180, 220],
-      fill: false,
-      borderColor: "rgba(75,192,192,1)",
-      tension: 0.1,
-    },
-  ],
-};
-
 const options = {
   responsive: true,
   plugins: {
     legend: { position: "top" },
-    title: { display: true, text: "Montly Document Uploads" },
+    title: { display: true, text: "Monthly Document Uploads" },
   },
 };
 
-export default function LineChart() {
+// Updated LineChart Component to receive labels and dataPoints as props
+export default function LineChart({ labels, dataPoints }) {
+  // Handle case when no data is provided
+  const data = {
+    labels: labels || [],
+    datasets: [
+      {
+        label: "Documents",
+        data: dataPoints || [],
+        fill: false,
+        borderColor: "rgba(75,192,192,1)",
+        tension: 0.1,
+      },
+    ],
+  };
+
   return (
     <div className="chartCardCont">
-      <Line data={data} options={options} />
+      {/* Only render chart if both labels and dataPoints are available */}
+      {labels?.length && dataPoints?.length ? (
+        <Line data={data} options={options} />
+      ) : (
+        <div className="noDataText">No data available for document growth.</div>
+      )}
     </div>
   );
 }
-
-
