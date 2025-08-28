@@ -6,6 +6,14 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from jinja2 import Template
 from auth_server.config import Settings
+try:
+    # official resend python SDK (optional)
+    from resend import Resend
+    _HAS_RESEND = True
+except Exception:
+    Resend = None
+    _HAS_RESEND = False
+    # we will lazily import httpx if needed at runtime
 
 logger = logging.getLogger(__name__)
 
@@ -47,36 +55,73 @@ class EmailService:
             reset_link = f"http://127.0.0.1:3600/reset-password?token={reset_token}"
             html_content = html_template.render(subject=subject, username=username, reset_link=reset_link)
             text_content = text_template.render(username=username, reset_link=reset_link)
-            message = MIMEMultipart("alternative")
-            message["Subject"] = subject
-            message["From"] = self.settings.papermerge__email__from_address
-            message["To"] = email
-            text_part = MIMEText(text_content, "plain")
-            html_part = MIMEText(html_content, "html")
-            message.attach(text_part)
-            message.attach(html_part)
-            # Use SMTP client with explicit timeout and starttls support.
-            timeout = int(getattr(self.settings, "papermerge__email__smtp_timeout", 10))
-            smtp = aiosmtplib.SMTP(
-                hostname=self.settings.papermerge__email__smtp_host,
-                port=self.settings.papermerge__email__smtp_port,
-                timeout=timeout,
-                start_tls=self.settings.papermerge__email__smtp_start_tls,
-            )
-            try:
-                await asyncio.wait_for(smtp.connect(), timeout=timeout)
-                if self.settings.papermerge__email__smtp_username and self.settings.papermerge__email__smtp_password:
-                    await asyncio.wait_for(
-                        smtp.login(self.settings.papermerge__email__smtp_username, self.settings.papermerge__email__smtp_password),
-                        timeout=timeout,
-                    )
-                await asyncio.wait_for(smtp.send_message(message), timeout=timeout)
-            finally:
+            # Prefer Resend API if API key is configured
+            resend_api_key = getattr(self.settings, "papermerge__email__resend_api_key", None)
+            if resend_api_key:
+                # Use official SDK if available
                 try:
-                    await smtp.quit()
-                except Exception:
-                    # ignore quit errors
-                    pass
+                    if _HAS_RESEND and Resend is not None:
+                        client = Resend(resend_api_key)
+                        # resend sdk is synchronous for send? it provides send function; use threadpool if needed
+                        await asyncio.to_thread(
+                            client.emails.send,
+                            {
+                                "from": self.settings.papermerge__email__from_address,
+                                "to": [email],
+                                "subject": subject,
+                                "html": html_content,
+                                "text": text_content,
+                            },
+                        )
+                    else:
+                        # fallback: use httpx to call Resend REST API
+                        import httpx
+
+                        headers = {
+                            "Authorization": f"Bearer {resend_api_key}",
+                            "Content-Type": "application/json",
+                        }
+                        payload = {
+                            "from": self.settings.papermerge__email__from_address,
+                            "to": [email],
+                            "subject": subject,
+                            "html": html_content,
+                            "text": text_content,
+                        }
+                        async with httpx.AsyncClient(timeout=10.0) as client:
+                            r = await client.post("https://api.resend.com/emails", json=payload, headers=headers)
+                            r.raise_for_status()
+            else:
+                message = MIMEMultipart("alternative")
+                message["Subject"] = subject
+                message["From"] = self.settings.papermerge__email__from_address
+                message["To"] = email
+                text_part = MIMEText(text_content, "plain")
+                html_part = MIMEText(html_content, "html")
+                message.attach(text_part)
+                message.attach(html_part)
+                # Use SMTP client with explicit timeout and starttls support.
+                timeout = int(getattr(self.settings, "papermerge__email__smtp_timeout", 10))
+                smtp = aiosmtplib.SMTP(
+                    hostname=self.settings.papermerge__email__smtp_host,
+                    port=self.settings.papermerge__email__smtp_port,
+                    timeout=timeout,
+                    start_tls=self.settings.papermerge__email__smtp_start_tls,
+                )
+                try:
+                    await asyncio.wait_for(smtp.connect(), timeout=timeout)
+                    if self.settings.papermerge__email__smtp_username and self.settings.papermerge__email__smtp_password:
+                        await asyncio.wait_for(
+                            smtp.login(self.settings.papermerge__email__smtp_username, self.settings.papermerge__email__smtp_password),
+                            timeout=timeout,
+                        )
+                    await asyncio.wait_for(smtp.send_message(message), timeout=timeout)
+                finally:
+                    try:
+                        await smtp.quit()
+                    except Exception:
+                        # ignore quit errors
+                        pass
             logger.info(f"Password reset email sent successfully to {email}")
             return True
         except Exception as e:
@@ -125,36 +170,75 @@ class EmailService:
             """)
             html_content = html_template.render(subject=subject, username=username, otp_code=otp_code)
             text_content = text_template.render(username=username, otp_code=otp_code)
-            message = MIMEMultipart("alternative")
-            message["Subject"] = subject
-            message["From"] = self.settings.papermerge__email__from_address
-            message["To"] = email
-            text_part = MIMEText(text_content, "plain")
-            html_part = MIMEText(html_content, "html")
-            message.attach(text_part)
-            message.attach(html_part)
-            # Use SMTP client with explicit timeout and starttls support.
-            timeout = int(getattr(self.settings, "papermerge__email__smtp_timeout", 10))
-            smtp = aiosmtplib.SMTP(
-                hostname=self.settings.papermerge__email__smtp_host,
-                port=self.settings.papermerge__email__smtp_port,
-                timeout=timeout,
-                start_tls=self.settings.papermerge__email__smtp_start_tls,
-            )
-            try:
-                await asyncio.wait_for(smtp.connect(), timeout=timeout)
-                if self.settings.papermerge__email__smtp_username and self.settings.papermerge__email__smtp_password:
-                    await asyncio.wait_for(
-                        smtp.login(self.settings.papermerge__email__smtp_username, self.settings.papermerge__email__smtp_password),
-                        timeout=timeout,
-                    )
-                await asyncio.wait_for(smtp.send_message(message), timeout=timeout)
-            finally:
+            # Prefer Resend API if API key is configured
+            resend_api_key = getattr(self.settings, "papermerge__email__resend_api_key", None)
+            if resend_api_key:
                 try:
-                    await smtp.quit()
-                except Exception:
-                    # ignore quit errors
-                    pass
+                    if _HAS_RESEND and Resend is not None:
+                        client = Resend(resend_api_key)
+                        await asyncio.to_thread(
+                            client.emails.send,
+                            {
+                                "from": self.settings.papermerge__email__from_address,
+                                "to": [email],
+                                "subject": subject,
+                                "html": html_content,
+                                "text": text_content,
+                            },
+                        )
+                    else:
+                        import httpx
+
+                        headers = {
+                            "Authorization": f"Bearer {resend_api_key}",
+                            "Content-Type": "application/json",
+                        }
+                        payload = {
+                            "from": self.settings.papermerge__email__from_address,
+                            "to": [email],
+                            "subject": subject,
+                            "html": html_content,
+                            "text": text_content,
+                        }
+                        async with httpx.AsyncClient(timeout=10.0) as client:
+                            r = await client.post("https://api.resend.com/emails", json=payload, headers=headers)
+                            r.raise_for_status()
+                except Exception as e:
+                    logger.error(f"Resend email send failed, falling back to SMTP: {e}")
+                    # fallthrough to SMTP below
+                    resend_api_key = None
+
+            if not getattr(self.settings, "papermerge__email__resend_api_key", None):
+                message = MIMEMultipart("alternative")
+                message["Subject"] = subject
+                message["From"] = self.settings.papermerge__email__from_address
+                message["To"] = email
+                text_part = MIMEText(text_content, "plain")
+                html_part = MIMEText(html_content, "html")
+                message.attach(text_part)
+                message.attach(html_part)
+                # Use SMTP client with explicit timeout and starttls support.
+                timeout = int(getattr(self.settings, "papermerge__email__smtp_timeout", 10))
+                smtp = aiosmtplib.SMTP(
+                    hostname=self.settings.papermerge__email__smtp_host,
+                    port=self.settings.papermerge__email__smtp_port,
+                    timeout=timeout,
+                    start_tls=self.settings.papermerge__email__smtp_start_tls,
+                )
+                try:
+                    await asyncio.wait_for(smtp.connect(), timeout=timeout)
+                    if self.settings.papermerge__email__smtp_username and self.settings.papermerge__email__smtp_password:
+                        await asyncio.wait_for(
+                            smtp.login(self.settings.papermerge__email__smtp_username, self.settings.papermerge__email__smtp_password),
+                            timeout=timeout,
+                        )
+                    await asyncio.wait_for(smtp.send_message(message), timeout=timeout)
+                finally:
+                    try:
+                        await smtp.quit()
+                    except Exception:
+                        # ignore quit errors
+                        pass
             logger.info(f"OTP email sent successfully to {email}")
             return True
         except Exception as e:

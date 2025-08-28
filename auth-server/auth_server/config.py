@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     # Timeout (in seconds) for SMTP operations (connect/send). Keep low to avoid upstream timeouts.
     papermerge__email__smtp_timeout: int = 10
 
+    # Use Resend (https://resend.com) API if provided. Railway blocks SMTP outbound but allows HTTPS.
+    papermerge__email__resend_api_key: str | None = None
+
     # Frontend URL for password reset links
     papermerge__frontend__url: str = "http://localhost:3600"
 
