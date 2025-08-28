@@ -1,4 +1,3 @@
-
 import logging
 import aiosmtplib
 from email.mime.text import MIMEText
@@ -43,7 +42,7 @@ class EmailService:
             text_template = Template("""
             Password Reset\n\nHello {{ username }},\n\nYou requested a password reset. Use the link below to reset your password:\n{{ reset_link }}\n\nIf you did not request this, please ignore this email.\nThis link will expire in 1 hour.\n\nBest regards,\nPapermerge Team
             """)
-            reset_link = f"http://127.0.0.1:3600/reset-password?token={reset_token}"
+            reset_link = f"{self.settings.papermerge__frontend__url}/reset-password?token={reset_token}"
             html_content = html_template.render(subject=subject, username=username, reset_link=reset_link)
             text_content = text_template.render(username=username, reset_link=reset_link)
             message = MIMEMultipart("alternative")

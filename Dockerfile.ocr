@@ -1,0 +1,9 @@
+FROM papermerge/ocrworker:0.3.1
+
+# Install Tagalog language pack for tesseract OCR
+RUN apt update && apt install -y tesseract-ocr-fil || echo "Filipino package not found"
+
+# Alternatively, download Tagalog language data directly
+RUN mkdir -p /usr/share/tesseract-ocr/4.00/tessdata && \
+    apt install -y wget && \
+    wget -O /usr/share/tesseract-ocr/4.00/tessdata/tgl.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/tgl.traineddata

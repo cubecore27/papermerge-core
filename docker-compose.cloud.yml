@@ -1,0 +1,47 @@
+version: "3.9"
+# docker build -t papermerge-core-ocr:standard -f docker/standard/Dockerfile .
+# dos2unix docker/standard/entrypoint.sh
+services:
+  papermerge:
+    image: papermerge-core-ocr:standard
+    container_name: papermerge-core-ocr
+    ports:
+      - "8000:80"
+    environment:
+      PAPERMERGE__DATABASE__URL: "postgresql://postgres:bBYAoFjwJRKfDHseBWzPgwxMMPrTNhak@centerbeam.proxy.rlwy.net:39599/railway"
+      PAPERMERGE__REDIS__URL: "redis://default:wQfrjZYwubIGSDHmZAuaZznBhAmfTbmf@shortline.proxy.rlwy.net:43383"
+      CELERY_BROKER_URL: "redis://default:wQfrjZYwubIGSDHmZAuaZznBhAmfTbmf@shortline.proxy.rlwy.net:43383"
+      CELERY_RESULT_BACKEND: "redis://default:wQfrjZYwubIGSDHmZAuaZznBhAmfTbmf@shortline.proxy.rlwy.net:43383"
+      PAPERMERGE__MAIN__MEDIA_ROOT: "/data"
+      PAPERMERGE__S3__BUCKET_NAME: "papermerge-docs"
+      AWS_REGION_NAME: "us-east-1"
+      AWS_ACCESS_KEY_ID: "ugzBfIA0nJ6bXrn4Q6g7"
+      AWS_SECRET_ACCESS_KEY: "ad6Jznm52GildpQi4EVe9LkzVNG0OEylS6IGs72O"
+      S3_WORKER_ARGS: "--loglevel=debug -Q s3 -c 2 -E"
+      AWS_S3_ADDRESSING_STYLE: "path"
+      PAPERMERGE__AUTH__USERNAME: "gensysadmin"
+      PAPERMERGE__AUTH__EMAIL: "cubecore27@gmail.com"
+      PAPERMERGE__AUTH__PASSWORD: "Secured@Password_1"
+      PAPERMERGE__SECURITY__SECRET_KEY: "12345"
+      PAPERMERGE__MAIN__API_PREFIX: ""
+      PAPERMERGE__CORE__BASE_URL: "https://papermerges3-production.up.railway.app"
+      PAPERMERGE__S3__SIGNATURE_VERSION: "s3v4"
+      AWS_S3_SIGNATURE_VERSION: "s3v4"
+      AWS_S3_CUSTOM_DOMAIN: "bucket-production-7efb.up.railway.app"
+      AWS_ENDPOINT_URL: "https://bucket-production-7efb.up.railway.app:443"
+      AWS_S3_ENDPOINT_URL: "https://bucket-production-7efb.up.railway.app:443"
+      AWS_S3_USE_HTTPS: "1"
+      AWS_VERIFY_SSL: "false"
+      PAPERMERGE__MAIN__LOGGING_CFG: "/etc/papermerge/logging.yaml"
+      PAPERMERGE__S3__COPY_LOCAL_TO_S3: "true"
+      PAPERMERGE__OCR__DEFAULT_LANG_CODE: "fil"
+      PAPERMERGE__OCR__LANG_CODES: "eng,deu,spa,fil"
+      PAPERMERGE__EMAIL__SMTP_HOST: "smtp.gmail.com"
+      PAPERMERGE__EMAIL__SMTP_PORT: "587"
+      PAPERMERGE__EMAIL__SMTP_USERNAME: "mayuga.marccedricc@gmail.com"
+      PAPERMERGE__EMAIL__SMTP_PASSWORD: "ivro fgxz yyuv yzxb"
+      PAPERMERGE__EMAIL__SMTP_USE_TLS: "false"
+      PAPERMERGE__EMAIL__SMTP_START_TLS: "true"
+      PAPERMERGE__EMAIL__FROM_ADDRESS: "noreply@gensysteam.com"
+    volumes:
+      - ~/var/pmgdata:/app/media

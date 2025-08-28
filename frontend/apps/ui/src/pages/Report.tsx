@@ -20,8 +20,7 @@ import {
 
 import { useGetUsersQuery } from '@/features/users/apiSlice';
 import DoughnutChart from '@/components/Charts/Doughnut';
-import { getDefaultHeaders } from '@/utils';
-
+import { getDefaultHeaders, getBaseURL } from '@/utils';
 
 export default function Report() {
   // Fetch all users
@@ -39,13 +38,14 @@ export default function Report() {
       setDocsError(null);
       try {
         const headers = getDefaultHeaders(); // Use headers with JWT token
+        const baseURL = getBaseURL(true); // Dynamically fetch base URL
         const results = await Promise.all(
           users.map(async (user: any) => {
             if (!user.home_folder_id) {
               console.warn(`User ${user.username} has no home_folder_id`);
               return [];
             }
-            const url = `http://127.0.0.1:8000/api/nodes/${user.home_folder_id}?page_number=1&page_size=1000&order_by=title`;
+            const url = `${baseURL}/api/nodes/${user.home_folder_id}?page_number=1&page_size=1000&order_by=title`;
             console.log(`Fetching: ${url}`);
             try {
               const res = await fetch(url, {
@@ -93,7 +93,8 @@ export default function Report() {
       try {
         setSummaryLoading(true);
         const headers = getDefaultHeaders(); // Use headers with JWT token
-        const res = await fetch('http://127.0.0.1:8000/api/stats/summary', {
+        const baseURL = getBaseURL(true); // Dynamically fetch base URL
+        const res = await fetch(`${baseURL}/api/stats/summary`, {
           method: 'GET',
           headers // Apply headers here
         });
