@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 
 // Redux & API
-
 import { useGetUsersQuery } from '@/features/users/apiSlice';
 import DoughnutChart from '@/components/Charts/Doughnut';
 import { getDefaultHeaders, getBaseURL } from '@/utils';
@@ -30,6 +29,9 @@ export default function Report() {
   const [allDocs, setAllDocs] = useState<any[]>([]);
   const [docsLoading, setDocsLoading] = useState(true);
   const [docsError, setDocsError] = useState<null | string>(null);
+  // New state for storage size
+  const [storageSize, setStorageSize] = useState<number | null>(null);
+  const [loadingStorage, setLoadingStorage] = useState(true);
 
   useEffect(() => {
     const fetchAllDocs = async () => {
@@ -88,6 +90,7 @@ export default function Report() {
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [summaryError, setSummaryError] = useState(false);
 
+  // Fetch all the users actions
   useEffect(() => {
     const fetchSummary = async () => {
       try {
@@ -112,12 +115,34 @@ export default function Report() {
     fetchSummary();
   }, []);
 
+  // Fetch storage size
+  useEffect(() => {
+    const fetchStorageSize = async () => {
+      try {
+        setLoadingStorage(true);
+        const headers = getDefaultHeaders();
+        const res = await fetch('http://127.0.0.1:8000/api/document-stats/total-size', {
+          credentials: 'include',
+          headers
+        });
+        if (!res.ok) throw new Error('Failed to fetch storage size');
+        const data = await res.json();
+        setStorageSize(data.total_size); // Assuming `total_size` is in bytes
+      } catch (err) {
+        setStorageSize(null);
+      } finally {
+        setLoadingStorage(false);
+      }
+    };
+
+    fetchStorageSize();
+  }, []);
+
   // console.log('Summary state:', summaryData);
 
   // Aggregate all docs for table
   const documentRows = allDocs.map(file => ({
     timestamp: 'N/A',
-    // user: file._user ? `${file._user.username} (${file._user.id})` : (file.user_id ? `User: ${file.user_id}` : 'Unknown'),
     user: file._user?.username || (file.user_id ? `User: ${file.user_id}` : 'Unknown'),
     action: 'Uploaded',
     file: file.title || 'Untitled',
@@ -207,14 +232,19 @@ export default function Report() {
               <DoughnutChart labels={fileTypeLabels} values={fileTypeData} />
             </div>
           </div>
+          {/* Storage Section */}
           <div className={styles.storageSection}>
             <h2 className={styles.sectionTitle}>Storage Accumulated</h2>
             <div className={styles.statItem}>
               <div>
-                <div className={styles.statValue}>{storageData.value}</div>
-                <span className={styles.statLabel}>{storageData.label}</span>
+                <div className={styles.statValue}>
+                  {loadingStorage ? '...' : storageSize ? `${(storageSize / 1024 / 1024).toFixed(2)} MB` : 'Error fetching'}
+                </div>
+                <span className={styles.statLabel}>{storageSize !== null ? 'Storage Used' : 'Error'}</span>
               </div>
-              <div className={styles.statIcon}>{storageData.icon}</div>
+              <div className={styles.statIcon}>
+                <HardDrive />
+              </div>
             </div>
           </div>
         </div>
