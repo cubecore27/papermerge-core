@@ -40,8 +40,12 @@ const Dashboard: React.FC = () => {
     const fetchUserDocuments = async () => {
       try {
         setLoadingDocuments(true);
+
+        // Initialize headers
+        const headers = getDefaultHeaders();
+
         const res = await fetch(
-          `http://127.0.0.1:8000/api/stats/user-documents/?user_id=${currentUser.id}`,
+          `http://127.0.0.1:8000/api/stats/user-documents`,
           {
             credentials: 'include',
             headers
@@ -49,8 +53,11 @@ const Dashboard: React.FC = () => {
         );
         if (!res.ok) throw new Error('Failed to fetch user documents');
         const data = await res.json();
-        // console.log('📄 User Documents:', data); 
-        setUserDocuments(data);
+
+        // Filter client-side by currentUser.id
+        const filteredDocs = data.filter(doc => doc.user_id === currentUser.id);
+
+        setUserDocuments(filteredDocs);
         setErrorDocuments(false);
       } catch (err) {
         console.error(err);
@@ -72,6 +79,7 @@ const Dashboard: React.FC = () => {
         );
         if (!res.ok) throw new Error('Failed to fetch activities');
         const data = await res.json();
+        console.log('🧾 User Activities:', data);
         // console.log('🧾 User Activities:', data);
         setActivities(data);
       } catch (err) {
@@ -99,6 +107,7 @@ const Dashboard: React.FC = () => {
         setLoadingStorage(false);
       }
     };
+
     fetchStorageSize();
 
   }, [currentUser?.id]);
@@ -219,14 +228,6 @@ const Dashboard: React.FC = () => {
       node_id: act.node_id || '',
     }));
 
-  // === System Health (placeholder, unchanged) ===
-  const systemHealth = [
-    { label: 'Storage Capacity', status: 'healthy', value: 67, tooltip: 'Current storage usage percentage' },
-    { label: 'OCR Service', status: 'healthy', icon: CheckCircle, tooltip: 'OCR service is operational' },
-    { label: 'Email Integration', status: 'warning', icon: AlertCircle, tooltip: 'There may be issues with email integration' },
-    { label: 'Failed Uploads', status: 'error', icon: XCircle, count: 3, tooltip: 'Number of failed uploads requiring attention' },
-  ];
-
   return (
     <div className={styles.dashboard}>
       {/* Header */}
@@ -335,46 +336,6 @@ const Dashboard: React.FC = () => {
             </div>
           ))}
         </div>
-        {/* <div className={styles.card} title="Current system health status">
-          <h2 className={styles.sectionTitle}>System Health</h2>
-          {systemHealth.map((item, index) => (
-            <div key={index} className={styles.healthItem} title={item.tooltip}>
-              <span className={styles.healthLabel}>{item.label}</span>
-              <div className={`${styles.healthStatus} ${item.status === 'healthy' ? styles.statusGreen :
-                item.status === 'warning' ? styles.statusYellow :
-                  styles.statusRed
-                }`}
-              >
-                {item.icon && <item.icon size={12} aria-hidden="true" />}
-                {item.count && <span>{item.count}</span>}
-                {item.value !== undefined && (
-                  <div style={{ minWidth: '60px' }}>
-                    <div className={styles.progressBar}>
-                      <div
-                        className={styles.progressFill}
-                        style={{
-                          width: `${item.value}%`,
-                          backgroundColor:
-                            item.value > 80 ? '#dc2626' :
-                              item.value > 60 ? '#d97706' :
-                                '#059669'
-                        }}
-                      />
-                    </div>
-                    <span style={{ fontSize: '11px' }}>{item.value}%</span>
-                  </div>
-                )}
-                {!item.count && item.value === undefined && (
-                  <span>
-                    {item.status === 'healthy' ? 'Online' :
-                      item.status === 'warning' ? 'Warning' :
-                        'Error'}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div> */}
       </div>
     </div>
   );
