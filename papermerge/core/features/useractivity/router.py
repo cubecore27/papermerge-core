@@ -76,14 +76,15 @@ async def get_all_activities(
     db_session: AsyncSession = Depends(get_db),
 ):
     """
-    Get all activity records with usernames instead of user IDs.
+    Get all activity records with usernames and user IDs.
 
     Returns:
-      - List of activity records with username, action, and timestamps.
+      - List of activity records with user ID, username, action, and timestamps.
     """
     stmt = (
         select(
             Activity.id,
+            User.id.label("user_id"),  # Include user_id
             User.username.label("username"),
             Activity.node_id,
             Activity.version_id,

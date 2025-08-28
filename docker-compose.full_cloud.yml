@@ -1,0 +1,141 @@
+version: "3.9"
+# docker build -t papermerge-core-ocr:standard -f docker/standard/Dockerfile .
+# dos2unix docker/standard/entrypoint.sh
+# docker-compose -f docker-compose.full_cloud.yml up -d
+# docker-compose -f docker-compose.full_cloud.yml down
+services:
+  solr:
+    image: solr:9.7
+    container_name: papermerge-solr
+    restart: unless-stopped
+    ports:
+      - "8983:8983"
+    command:
+      - solr-precreate
+      - papermerge
+    tmpfs:
+      - /var/solr/data:uid=8983,gid=8983,mode=775  # Set ownership and permissions
+
+  redis:
+    image: redis:7
+    container_name: pmg_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  db:
+    image: postgres:16.1
+    container_name: pm-db
+    restart: unless-stopped
+    ports:
+      - "5433:5432"  # Avoid conflict with native Postgres
+    environment:
+      POSTGRES_USER: coco
+      POSTGRES_PASSWORD: jumbo
+      POSTGRES_DB: pmgdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+  db_ephemeral:
+    image: postgres:16.1
+    container_name: pm-db-ephemeral
+    restart: unless-stopped
+    ports:
+      - "5434:5432"   # different port to avoid conflict
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: testdb
+    tmpfs:
+      - /var/lib/postgresql/data  # ephemeral storage
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+  ocrworker:
+    build:
+      context: .
+      dockerfile: docker/standard/Dockerfile
+    image: custom-ocrworker:tagalog
+    container_name: ocr-worker
+    restart: unless-stopped
+    command: ["worker"]
+    environment:
+      PAPERMERGE__DATABASE__URL: postgresql://postgres:bBYAoFjwJRKfDHseBWzPgwxMMPrTNhak@centerbeam.proxy.rlwy.net:39599/railway
+      PAPERMERGE__REDIS__URL: redis://redis:6379/0
+      PAPERMERGE__MAIN__MEDIA_ROOT: /app/media
+      OCR_WORKER_ARGS: -Q ocr -E --loglevel=DEBUG
+      PAPERMERGE__MAIN__LOGGING_CFG: "/etc/papermerge/logging.yaml"
+    volumes:
+      - ~/var/pmgdata:/app/media
+    depends_on:
+      - db
+      - redis
+
+  i3worker:
+    image: papermerge/i3worker:0.3.1b1
+    container_name: i3-worker
+    restart: unless-stopped
+    command: ["worker"]  # required by entrypoint.sh
+    environment:
+      PAPERMERGE__DATABASE__URL: postgresql://postgres:bBYAoFjwJRKfDHseBWzPgwxMMPrTNhak@centerbeam.proxy.rlwy.net:39599/railway
+      PAPERMERGE__REDIS__URL: redis://redis:6379/0
+      PAPERMERGE__SEARCH__URL: solr://solr:8983/papermerge
+      I3_WORKER_ARGS: "-Q i3 -E --loglevel=DEBUG"
+      PAPERMERGE__MAIN__LOGGING_CFG: "/etc/papermerge/logging.yaml"
+    depends_on:
+      - db
+      - redis
+      - solr
+
+  papermerge:
+    image: papermerge-core-ocr:standard
+    container_name: papermerge-core-app
+    ports:
+      - "8000:80"
+    environment:
+      PAPERMERGE__DATABASE__URL: postgresql://postgres:bBYAoFjwJRKfDHseBWzPgwxMMPrTNhak@centerbeam.proxy.rlwy.net:39599/railway
+      PAPERMERGE__REDIS__URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      PAPERMERGE__MAIN__MEDIA_ROOT: "/app/media"
+      PAPERMERGE__S3__BUCKET_NAME: "papermerge-docs"
+      AWS_REGION_NAME: "us-east-1"
+      AWS_ACCESS_KEY_ID: "ugzBfIA0nJ6bXrn4Q6g7"
+      AWS_SECRET_ACCESS_KEY: "ad6Jznm52GildpQi4EVe9LkzVNG0OEylS6IGs72O"
+      S3_WORKER_ARGS: "--loglevel=debug -Q s3 -c 2 -E"
+      AWS_S3_ADDRESSING_STYLE: "path"
+      PAPERMERGE__AUTH__USERNAME: "gensysadmin"
+      PAPERMERGE__AUTH__EMAIL: "cubecore27@gmail.com"
+      PAPERMERGE__AUTH__PASSWORD: "Secured@Password_1"
+      PAPERMERGE__SECURITY__SECRET_KEY: "12345"
+      PAPERMERGE__MAIN__API_PREFIX: ""
+      PAPERMERGE__CORE__BASE_URL: "http://localhost:8000"
+      PAPERMERGE__OCR__DEFAULT_LANG_CODE: "fil"
+      PAPERMERGE__OCR__LANG_CODES: "eng,deu,spa,fil"
+      PAPERMERGE__EMAIL__SMTP_HOST: "smtp.gmail.com"
+      PAPERMERGE__EMAIL__SMTP_PORT: "587"
+      PAPERMERGE__EMAIL__SMTP_USERNAME: "mayuga.marccedricc@gmail.com"
+      PAPERMERGE__EMAIL__SMTP_PASSWORD: "ivro fgxz yyuv yzxb"
+      PAPERMERGE__EMAIL__SMTP_USE_TLS: "false"
+      PAPERMERGE__EMAIL__SMTP_START_TLS: "true"
+      PAPERMERGE__EMAIL__FROM_ADDRESS: "noreply@gensysteam.com"
+      PAPERMERGE__FRONTEND__URL: "https://ace-slightly-aphid.ngrok-free.app"
+    volumes:
+      - ~/var/pmgdata:/app/media
+    depends_on:
+      - db
+      - redis
+      - solr
+
+volumes:
+  pgdata:

@@ -53,10 +53,10 @@ const Dashboard: React.FC = () => {
         );
         if (!res.ok) throw new Error('Failed to fetch user documents');
         const data = await res.json();
-
+    
         // Filter client-side by currentUser.id
         const filteredDocs = data.filter(doc => doc.user_id === currentUser.id);
-
+    
         setUserDocuments(filteredDocs);
         setErrorDocuments(false);
       } catch (err) {
