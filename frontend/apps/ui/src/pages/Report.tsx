@@ -33,6 +33,9 @@ export default function Report() {
   const [storageSize, setStorageSize] = useState<number | null>(null);
   const [loadingStorage, setLoadingStorage] = useState(true);
 
+  // Dynamically fetch the base URL
+  const baseURL = getBaseURL(true);
+
   useEffect(() => {
     const fetchAllDocs = async () => {
       if (!users) return;
@@ -40,7 +43,6 @@ export default function Report() {
       setDocsError(null);
       try {
         const headers = getDefaultHeaders(); // Use headers with JWT token
-        const baseURL = getBaseURL(true); // Dynamically fetch base URL
         const results = await Promise.all(
           users.map(async (user: any) => {
             if (!user.home_folder_id) {
@@ -78,7 +80,7 @@ export default function Report() {
       }
     };
     if (users) fetchAllDocs();
-  }, [users]);
+  }, [users, baseURL]);
 
   // === NEW: Fetch KPI Summary from API ===
   const [summaryData, setSummaryData] = useState<{
@@ -96,7 +98,6 @@ export default function Report() {
       try {
         setSummaryLoading(true);
         const headers = getDefaultHeaders(); // Use headers with JWT token
-        const baseURL = getBaseURL(true); // Dynamically fetch base URL
         const res = await fetch(`${baseURL}/api/stats/summary`, {
           method: 'GET',
           headers // Apply headers here
@@ -113,7 +114,7 @@ export default function Report() {
     };
 
     fetchSummary();
-  }, []);
+  }, [baseURL]);
 
   // Fetch storage size
   useEffect(() => {
@@ -121,7 +122,7 @@ export default function Report() {
       try {
         setLoadingStorage(true);
         const headers = getDefaultHeaders();
-        const res = await fetch('http://127.0.0.1:8000/api/document-stats/total-size', {
+        const res = await fetch(`${baseURL}/api/document-stats/total-size`, {
           credentials: 'include',
           headers
         });
@@ -136,7 +137,7 @@ export default function Report() {
     };
 
     fetchStorageSize();
-  }, []);
+  }, [baseURL]);
 
   // console.log('Summary state:', summaryData);
 

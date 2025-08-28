@@ -40,8 +40,12 @@ const Dashboard: React.FC = () => {
     const fetchUserDocuments = async () => {
       try {
         setLoadingDocuments(true);
+
+        // Initialize headers
+        const headers = getDefaultHeaders();
+
         const res = await fetch(
-          `http://127.0.0.1:8000/api/stats/user-documents/?user_id=${currentUser.id}`,
+          `http://127.0.0.1:8000/api/stats/user-documents`,
           {
             credentials: 'include',
             headers
@@ -49,8 +53,11 @@ const Dashboard: React.FC = () => {
         );
         if (!res.ok) throw new Error('Failed to fetch user documents');
         const data = await res.json();
-        // console.log('📄 User Documents:', data); 
-        setUserDocuments(data);
+    
+        // Filter client-side by currentUser.id
+        const filteredDocs = data.filter(doc => doc.user_id === currentUser.id);
+    
+        setUserDocuments(filteredDocs);
         setErrorDocuments(false);
       } catch (err) {
         console.error(err);

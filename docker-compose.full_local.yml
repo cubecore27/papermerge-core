@@ -13,8 +13,8 @@ services:
     command:
       - solr-precreate
       - papermerge
-    tmpfs:
-      - /var/solr/data:uid=8983,gid=8983,mode=775  # Set ownership and permissions
+    volumes:
+      - solr_data:/var/solr
 
   redis:
     image: redis:7
@@ -140,3 +140,4 @@ services:
 
 volumes:
   pgdata:
+  solr_data: # Declare the solr_data volume here
