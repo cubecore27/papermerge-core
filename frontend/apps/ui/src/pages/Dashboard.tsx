@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getDefaultHeaders } from '@/utils';
+import { getDefaultHeaders, getBaseURL } from '@/utils';
 
 import { useNavigate } from 'react-router-dom';
 import {
@@ -30,6 +30,8 @@ const Dashboard: React.FC = () => {
   const [storageSize, setStorageSize] = useState<number | null>(null);
   const [loadingStorage, setLoadingStorage] = useState<boolean>(true);
 
+  const baseURL = getBaseURL(true); // Dynamically fetch the base URL
+
   // Fetch data
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -41,11 +43,8 @@ const Dashboard: React.FC = () => {
       try {
         setLoadingDocuments(true);
 
-        // Initialize headers
-        const headers = getDefaultHeaders();
-
         const res = await fetch(
-          `http://127.0.0.1:8000/api/stats/user-documents`,
+          `${baseURL}/api/stats/user-documents`, // Use dynamic base URL
           {
             credentials: 'include',
             headers
@@ -71,7 +70,7 @@ const Dashboard: React.FC = () => {
     const fetchActivities = async () => {
       try {
         const res = await fetch(
-          'http://127.0.0.1:8000/api/stats/all-activities',
+          `${baseURL}/api/stats/all-activities`, // Use dynamic base URL
           {
             credentials: 'include',
             headers
@@ -93,7 +92,7 @@ const Dashboard: React.FC = () => {
     const fetchStorageSize = async () => {
       try {
         setLoadingStorage(true);
-        const res = await fetch('http://127.0.0.1:8000/api/document-stats/total-size', {
+        const res = await fetch(`${baseURL}/api/document-stats/total-size`, {
           credentials: 'include',
           headers
         });
@@ -108,7 +107,7 @@ const Dashboard: React.FC = () => {
     };
     fetchStorageSize();
 
-  }, [currentUser?.id]);
+  }, [currentUser?.id, baseURL]);
 
   const docsData = { items: userDocuments };
 
