@@ -44,7 +44,7 @@ from papermerge.core.version import __version__
 from papermerge.core.config import get_settings
 
 # customs
-from papermerge.core.features.useractivity.storage import router as storage_router
+# from papermerge.core.features.useractivity.storage import router as storage_router
 from papermerge.core.features.useractivity.router import router as user_activity_router
 from papermerge.core.features.document.router_document_stats import router as document_stats_router
 
@@ -89,7 +89,6 @@ app.include_router(tasks_router, prefix=prefix)
 app.include_router(version_router, prefix=prefix)
 # custom
 app.include_router(user_activity_router, prefix=prefix)
-app.include_router(storage_router)
 app.include_router(document_stats_router, prefix=prefix)
 
 if config.papermerge__search__url:
