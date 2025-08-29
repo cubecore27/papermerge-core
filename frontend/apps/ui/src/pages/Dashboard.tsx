@@ -53,10 +53,10 @@ const Dashboard: React.FC = () => {
         );
         if (!res.ok) throw new Error('Failed to fetch user documents');
         const data = await res.json();
-    
+
         // Filter client-side by currentUser.id
         const filteredDocs = data.filter(doc => doc.user_id === currentUser.id);
-    
+
         setUserDocuments(filteredDocs);
         setErrorDocuments(false);
       } catch (err) {
@@ -79,9 +79,12 @@ const Dashboard: React.FC = () => {
         );
         if (!res.ok) throw new Error('Failed to fetch activities');
         const data = await res.json();
-        console.log('🧾 User Activities:', data);
-        // console.log('🧾 User Activities:', data);
-        setActivities(data);
+
+        const filteredActivities = data.filter(activity => activity.user_id === currentUser.id);
+
+        console.log('🧾 Filtered User Activities:', filteredActivities);
+        setActivities(filteredActivities);
+
       } catch (err) {
         console.error(err);
       }
@@ -94,19 +97,27 @@ const Dashboard: React.FC = () => {
     const fetchStorageSize = async () => {
       try {
         setLoadingStorage(true);
-        const res = await fetch('http://127.0.0.1:8000/api/document-stats/total-size', {
-          credentials: 'include',
-          headers
-        });
+
+        // Use the endpoint with user ID for filtering by current user
+        const res = await fetch(
+          `http://127.0.0.1:8000/api/document-stats/user-total-size/${currentUser.id}`,
+          {
+            credentials: 'include',
+            headers
+          }
+        );
+
         if (!res.ok) throw new Error('Failed to fetch storage size');
         const data = await res.json();
         setStorageSize(data.total_size);
       } catch (err) {
-        setStorageSize(null);
+        console.error(err);
+        setStorageSize(null); // Handle error by setting storage size to null
       } finally {
         setLoadingStorage(false);
       }
     };
+
 
     fetchStorageSize();
 
@@ -259,6 +270,7 @@ const Dashboard: React.FC = () => {
 
       {/* Main Content */}
       <div className={styles.mainGrid}>
+        {/* Charts */}
         <div>
           <div className={styles.chartsGrid}>
             <div className={styles.chartCard} title="Breakdown of file types in your system">
@@ -314,11 +326,32 @@ const Dashboard: React.FC = () => {
               </div>
             ))}
           </div>
+
+          <br />
+
+          {/* Recent Activity */}
+          <div className={styles.card} title="Recent activity in your account">
+            <h2 className={styles.sectionTitle}>Recent Activity</h2>
+            {recentActivity.map((activity, index) => (
+              <div key={index} className={styles.activityItem} title={activity.tooltip}>
+                <activity.icon className={styles.activityIcon} aria-hidden="true" />
+                <div className={styles.activityText}>
+                  <b>{activity.username}</b> {activity.text}
+                  {activity.node_id && (
+                    <span style={{ color: '#888', fontSize: '11px', marginLeft: 4 }}>
+                      (Node: {activity.node_id.slice(0, 8)})
+                    </span>
+                  )}
+                </div>
+                <span className={styles.activityTime}>{activity.time}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Recent Activity & System Health */}
-      <div className={styles.bottomGrid}>
+      {/* Recent Activity */}
+      {/* <div className={styles.bottomGrid}>
         <div className={styles.card} title="Recent activity in your account">
           <h2 className={styles.sectionTitle}>Recent Activity</h2>
           {recentActivity.map((activity, index) => (
@@ -336,7 +369,7 @@ const Dashboard: React.FC = () => {
             </div>
           ))}
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };
