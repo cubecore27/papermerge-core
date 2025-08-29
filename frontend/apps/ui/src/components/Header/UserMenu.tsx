@@ -69,12 +69,12 @@ export default function UserMenu() {
         </Menu.Item> */}
 
         {/* API Documentation */}
-        <Menu.Item>
+        {/* <Menu.Item>
           <Group>
             <IconApi />
             <a href="/docs">{t("extra.rest_api")}</a>
           </Group>
-        </Menu.Item>
+        </Menu.Item> */}
 
         <Menu.Divider />
 
