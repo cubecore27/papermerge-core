@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getDefaultHeaders, getBaseURL } from '@/utils';
+import { getDefaultHeaders } from '@/utils';
 
 import { useNavigate } from 'react-router-dom';
 import {
@@ -30,8 +30,6 @@ const Dashboard: React.FC = () => {
   const [storageSize, setStorageSize] = useState<number | null>(null);
   const [loadingStorage, setLoadingStorage] = useState<boolean>(true);
 
-  const baseURL = getBaseURL(true); // Dynamically fetch the base URL
-
   // Fetch data
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -43,8 +41,11 @@ const Dashboard: React.FC = () => {
       try {
         setLoadingDocuments(true);
 
+        // Initialize headers
+        const headers = getDefaultHeaders();
+
         const res = await fetch(
-          `${baseURL}/api/stats/user-documents`, // Use dynamic base URL
+          `http://localhost:8000/api/stats/user-documents`,
           {
             credentials: 'include',
             headers
@@ -70,7 +71,7 @@ const Dashboard: React.FC = () => {
     const fetchActivities = async () => {
       try {
         const res = await fetch(
-          `${baseURL}/api/stats/all-activities`, // Use dynamic base URL
+          'http://localhost:8000/api/stats/all-activities',
           {
             credentials: 'include',
             headers
@@ -96,10 +97,16 @@ const Dashboard: React.FC = () => {
     const fetchStorageSize = async () => {
       try {
         setLoadingStorage(true);
-        const res = await fetch(`${baseURL}/api/document-stats/total-size`, {
-          credentials: 'include',
-          headers
-        });
+
+        // Use the endpoint with user ID for filtering by current user
+        const res = await fetch(
+          `http://localhost:8000/api/document-stats/user-total-size/${currentUser.id}`,
+          {
+            credentials: 'include',
+            headers
+          }
+        );
+
         if (!res.ok) throw new Error('Failed to fetch storage size');
         const data = await res.json();
         setStorageSize(data.total_size);
@@ -114,7 +121,7 @@ const Dashboard: React.FC = () => {
 
     fetchStorageSize();
 
-  }, [currentUser?.id, baseURL]);
+  }, [currentUser?.id]);
 
   const docsData = { items: userDocuments };
 

@@ -118,3 +118,62 @@
 .reportTable tr:nth-child(even) {
   background-color: #f9fafb;
 }
+
+.tagsByGroupGrid {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.tagsGroupCard {
+  background: #f7f7fa;
+  border-radius: 8px;
+  padding: 1rem;
+  min-width: 200px;
+  box-shadow: 0 1px 4px #0001;
+}
+.tagsGroupTitle {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+.tagsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.tagBadge {
+  background: #e0e7ff;
+  border-radius: 12px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.95em;
+  display: inline-block;
+}
+.tagCount {
+  color: #555;
+  font-size: 0.9em;
+}
+
+.summaryGrid {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.summaryCard {
+  background: #f7f7fa;
+  border-radius: 8px;
+  padding: 1rem;
+  min-width: 200px;
+  box-shadow: 0 1px 4px #0001;
+}
+
+.advancedStatsGrid {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.advancedStatsCard {
+  background: #f7f7fa;
+  border-radius: 8px;
+  padding: 1rem;
+  min-width: 220px;
+  box-shadow: 0 1px 4px #0001;
+}
