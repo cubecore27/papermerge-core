@@ -271,17 +271,17 @@ export default function Report() {
 
       <div className={styles.rpBody}>
         {/* KPI Cards Section */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Key Performance Indicators</h2>
+        <section className={styles.section} title="Key Performance Indicators section">
+          <h2 className={styles.sectionTitle} title="Key Performance Indicators">Key Performance Indicators</h2>
           <div className={styles.kpiGrid}>
             {kpiCardData.map((kpi, index) => (
-              <div className={styles.kpiCard} key={index}>
+              <div className={styles.kpiCard} key={index} title={kpi.title}>
                 <div className={styles.kpiContent}>
-                  <div className={styles.kpiIcon} style={{ backgroundColor: `${kpi.color}15`, color: kpi.color }}>
+                  <div className={styles.kpiIcon} style={{ backgroundColor: `${kpi.color}15`, color: kpi.color }} title={kpi.title + ' Icon'}>
                     {kpi.icon}
                   </div>
                   <div className={styles.kpiText}>
-                    <div className={styles.kpiValue}>{kpi.value}</div>
+                    <div className={styles.kpiValue} title={kpi.title + ' Value'}>{kpi.value}</div>
                     <div className={styles.kpiLabel}>{kpi.title}</div>
                   </div>
                 </div>
@@ -292,19 +292,19 @@ export default function Report() {
 
         {/* Analytics Charts Section */}
         <div className={styles.chartsRow}>
-          <section className={styles.chartSection}>
-            <h2 className={styles.sectionTitle}>File Type Distribution</h2>
+          <section className={styles.chartSection} title="File Type Distribution">
+            <h2 className={styles.sectionTitle} title="File Type Distribution">File Type Distribution</h2>
             <div className={styles.chartContainer}>
               {fileTypeLabels.length > 0 ? (
-                <DoughnutChart labels={fileTypeLabels} values={fileTypeData} />
+                <DoughnutChart labels={fileTypeLabels} values={fileTypeData} title="File Type Distribution Chart" />
               ) : (
                 <div className={styles.noDataMessage}>No file type data available</div>
               )}
             </div>
           </section>
 
-          <section className={styles.chartSection}>
-            <h2 className={styles.sectionTitle}>Tags by Group</h2>
+          <section className={styles.chartSection} title="Tags by Group">
+            <h2 className={styles.sectionTitle} title="Tags by Group">Tags by Group</h2>
             <div className={styles.tagsContainer}>
               {tagsLoading ? (
                 <div className={styles.loadingMessage}>Loading tags...</div>
@@ -316,10 +316,10 @@ export default function Report() {
                     const labels = tags.map(t => t.tag);
                     const values = tags.map(t => t.count);
                     return (
-                      <div key={group} className={styles.tagsGroupCard}>
-                        <h4 className={styles.tagsGroupTitle}>{group}</h4>
+                      <div key={group} className={styles.tagsGroupCard} title={`Tags for group ${group}`}>
+                        <h4 className={styles.tagsGroupTitle} title={`Tag group: ${group}`}>{group}</h4>
                         <div className={styles.miniChartContainer}>
-                          <DoughnutChart labels={labels} values={values} />
+                          <DoughnutChart labels={labels} values={values} title={`Tags for group ${group}`} />
                         </div>
                       </div>
                     );
@@ -333,16 +333,16 @@ export default function Report() {
         </div>
 
         {/* System Summary Section */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>System Summary</h2>
+        <section className={styles.section} title="System Summary">
+          <h2 className={styles.sectionTitle} title="System Summary">System Summary</h2>
           {summary2Loading ? (
             <div className={styles.loadingMessage}>Loading summary...</div>
           ) : summary2Error ? (
             <div className={styles.errorMessage}>Error: {summary2Error}</div>
           ) : summary2 ? (
             <div className={styles.summaryGrid}>
-              <div className={styles.summaryCard}>
-                <h3 className={styles.cardTitle}>Active Users</h3>
+              <div className={styles.summaryCard} title="Active Users">
+                <h3 className={styles.cardTitle} title="Active Users">Active Users</h3>
                 <div className={styles.cardContent}>
                   {summary2.active_users && summary2.active_users.length > 0 ? (
                     <PieChart
@@ -354,8 +354,8 @@ export default function Report() {
                 </div>
               </div>
 
-              <div className={styles.summaryCard}>
-                <h3 className={styles.cardTitle}>Shared Documents</h3>
+              <div className={styles.summaryCard} title="Shared Documents">
+                <h3 className={styles.cardTitle} title="Shared Documents">Shared Documents</h3>
                 <div className={styles.cardContent}>
                   {summary2.shared_documents && summary2.shared_documents.length > 0 ? (
                     <div className={styles.sharedDocsList}>
@@ -379,8 +379,8 @@ export default function Report() {
                 </div>
               </div>
 
-              <div className={styles.summaryCard}>
-                <h3 className={styles.cardTitle}>Roles Distribution</h3>
+              <div className={styles.summaryCard} title="Roles Distribution">
+                <h3 className={styles.cardTitle} title="Roles Distribution">Roles Distribution</h3>
                 <div className={styles.cardContent}>
                   {summary2.roles_summary && summary2.roles_summary.length > 0 ? (
                     <BarChart
@@ -397,16 +397,16 @@ export default function Report() {
         </section>
 
         {/* Advanced Statistics Section */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Advanced Analytics</h2>
+        <section className={styles.section} title="Advanced Analytics">
+          <h2 className={styles.sectionTitle} title="Advanced Analytics">Advanced Analytics</h2>
           {advancedStatsLoading ? (
             <div className={styles.loadingMessage}>Loading advanced stats...</div>
           ) : advancedStatsError ? (
             <div className={styles.errorMessage}>Error: {advancedStatsError}</div>
           ) : advancedStats ? (
             <div className={styles.advancedGrid}>
-              <div className={styles.advancedCard}>
-                <h3 className={styles.cardTitle}>Storage by User</h3>
+              <div className={styles.advancedCard} title="Storage by User">
+                <h3 className={styles.cardTitle} title="Storage by User">Storage by User</h3>
                 <div className={styles.cardContent}>
                   {advancedStats.per_user && advancedStats.per_user.length > 0 ? (
                     <BarChart
@@ -417,8 +417,8 @@ export default function Report() {
                 </div>
               </div>
 
-              <div className={styles.advancedCard}>
-                <h3 className={styles.cardTitle}>Storage by Group</h3>
+              <div className={styles.advancedCard} title="Storage by Group">
+                <h3 className={styles.cardTitle} title="Storage by Group">Storage by Group</h3>
                 <div className={styles.cardContent}>
                   {advancedStats.per_group && advancedStats.per_group.length > 0 ? (
                     <div className={styles.statsList}>
@@ -438,8 +438,8 @@ export default function Report() {
                 </div>
               </div>
 
-              <div className={styles.advancedCard}>
-                <h3 className={styles.cardTitle}>Document Types</h3>
+              <div className={styles.advancedCard} title="Document Types">
+                <h3 className={styles.cardTitle} title="Document Types">Document Types</h3>
                 <div className={styles.cardContent}>
                   {advancedStats.per_document_type && advancedStats.per_document_type.length > 0 ? (
                     <div className={styles.statsList}>
@@ -459,8 +459,8 @@ export default function Report() {
                 </div>
               </div>
 
-              <div className={styles.advancedCard}>
-                <h3 className={styles.cardTitle}>Largest Documents</h3>
+              <div className={styles.advancedCard} title="Largest Documents">
+                <h3 className={styles.cardTitle} title="Largest Documents">Largest Documents</h3>
                 <div className={styles.cardContent}>
                   {advancedStats.largest_documents && advancedStats.largest_documents.length > 0 ? (
                     <div className={styles.statsList}>
@@ -480,8 +480,8 @@ export default function Report() {
                 </div>
               </div>
 
-              <div className={styles.advancedCard}>
-                <h3 className={styles.cardTitle}>File Size Distribution</h3>
+              <div className={styles.advancedCard} title="File Size Distribution">
+                <h3 className={styles.cardTitle} title="File Size Distribution">File Size Distribution</h3>
                 <div className={styles.cardContent}>
                   {advancedStats.file_size_distribution && advancedStats.file_size_distribution.length > 0 ? (
                     <DoughnutChart
@@ -498,17 +498,17 @@ export default function Report() {
         </section>
 
         {/* Documents Table Section */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Recent Documents</h2>
+        <section className={styles.section} title="Recent Documents">
+          <h2 className={styles.sectionTitle} title="Recent Documents">Recent Documents</h2>
           <div className={styles.tableContainer}>
-            <table className={styles.reportTable}>
+            <table className={styles.reportTable} title="Recent Documents Table">
               <thead>
                 <tr>
-                  <th>Created Date</th>
-                  <th>User</th>
-                  <th>File Name</th>
-                  <th>OCR Status</th>
-                  <th>User Status</th>
+                  <th title="Document Created Date">Created Date</th>
+                  <th title="Document Owner User">User</th>
+                  <th title="Document File Name">File Name</th>
+                  <th title="OCR Processing Status">OCR Status</th>
+                  <th title="User Account Status">User Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -521,15 +521,12 @@ export default function Report() {
                     }
                   }
                   return (
-                    <tr key={idx}>
-                      <td>{formattedDate}</td>
-                      <td>{doc.user}</td>
-                      <td className={styles.fileName}>{doc.file}</td>
-                      <td>{doc.ocr ? 'Processed' : 'Not Processed'}
-                      </td>
-                      <td>
-                        {doc.is_active ? 'Active' : 'Inactive'}
-                      </td>
+                    <tr key={idx} title={`Document: ${doc.file} by ${doc.user}`}> 
+                      <td title="Created Date">{formattedDate}</td>
+                      <td title="User">{doc.user}</td>
+                      <td className={styles.fileName} title={doc.file}>{doc.file}</td>
+                      <td title="OCR Status">{doc.ocr ? 'Processed' : 'Not Processed'}</td>
+                      <td title="User Status">{doc.is_active ? 'Active' : 'Inactive'}</td>
                     </tr>
                   );
                 })}
