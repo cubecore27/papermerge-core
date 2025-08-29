@@ -9,11 +9,7 @@ import {
   Upload,
   Download,
   Trash2,
-  HardDrive,
-  FileText,
-  FileSpreadsheet,
-  FileImage,
-  FilePlus
+  HardDrive
 } from 'lucide-react';
 
 // Redux & API
@@ -38,6 +34,8 @@ export default function Report() {
   // Fetch all documents for all users
   useEffect(() => {
     if (!users) return;
+    // LOG
+    // console.log('Fetched users:', users);
     setDocsLoading(true);
     setDocsError(null);
     const headers = getDefaultHeaders();
@@ -59,6 +57,14 @@ export default function Report() {
       .catch(e => setDocsError(e?.message || String(e)))
       .finally(() => setDocsLoading(false));
   }, [users]);
+
+  // LOG
+  useEffect(() => {
+    if (allDocs.length > 0) {
+      console.log('All documents:', allDocs);
+    }
+  }, [allDocs]);
+
 
   // === NEW: Fetch KPI Summary from API ===
   const [summaryData, setSummaryData] = useState<{
@@ -83,6 +89,8 @@ export default function Report() {
         if (!res.ok) throw new Error('Failed to fetch summary data');
         const data = await res.json();
         setSummaryData(data);
+        // LOG
+        // console.log('Fetched summary data:', data);
       } catch (err) {
         console.error('Error fetching summary:', err);
         setSummaryError(true);
@@ -113,14 +121,25 @@ export default function Report() {
 
   // console.log('Summary state:', summaryData);
 
-  // Aggregate all docs for table
-  const documentRows = allDocs.map(file => ({
-    timestamp: 'N/A',
-    user: file._user?.username || (file.user_id ? `User: ${file.user_id}` : 'Unknown'),
-    action: 'Uploaded',
-    file: file.title || 'Untitled',
-    status: file.ocr_status || 'Available',
-  }));
+  // Aggregate all docs for table with correct fields
+  const documentRows = allDocs
+    .map(file => ({
+      created_at: file.created_at || file._user?.created_at || null,
+      user: file._user?.username || (file.user_id ? `User: ${file.user_id}` : 'Unknown'),
+      file: file.title || 'Untitled',
+      thumbnail_url: file.thumbnail_url,
+      ocr: file.ocr,
+      ocr_status: file.ocr_status,
+      is_active: file._user?.is_active || false // Add is_active field
+    }))
+    .sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateB - dateA; // Descending: latest first
+    });
+
+  // LOG
+  // console.log('Document Row:', documentRows);
 
   // === File Type Counts in Bar Chart (all docs)
   const fileTypeMap: Record<string, number> = {};
@@ -213,14 +232,13 @@ export default function Report() {
             </div>
           </div>
         </div>
-        <div className={styles.docuSection}>
+        {/* <div className={styles.docuSection}>
           <h2 className={styles.sectionTitle}>All Uploaded Documents</h2>
           <table className={styles.reportTable}>
             <thead>
               <tr>
                 <th title="Date and time of the action">Timestamp</th>
                 <th title="User who performed the action">User</th>
-                {/* <th title="Type of action (Import, Export, etc.)">Action</th> */}
                 <th title="Name of the file affected">File Name</th>
                 <th title="Result or outcome of the action">Status</th>
               </tr>
@@ -230,7 +248,6 @@ export default function Report() {
                 <tr key={idx}>
                   <td>{doc.timestamp}</td>
                   <td>{doc.user}</td>
-                  {/* <td>{doc.action}</td> */}
                   <td>{doc.file}</td>
                   <td>{doc.status}</td>
                 </tr>
@@ -238,7 +255,54 @@ export default function Report() {
             </tbody>
 
           </table>
+        </div> */}
+        <div className={styles.docuSection}>
+          <h2 className={styles.sectionTitle}>All Uploaded Documents</h2>
+          <table className={styles.reportTable}>
+            <thead>
+              <tr>
+                <th title="Date and time the document was created">Created At</th>
+                <th title="User who performed the action">User</th>
+                <th title="Name of the file affected">File Name</th>
+                <th title="Document's preview thumbnail">Thumbnail</th>
+                <th title="OCR processing status">OCR</th>
+                <th title="Whether the user is active or not">Active Status</th> {/* Add new column */}
+              </tr>
+            </thead>
+            <tbody>
+              {documentRows.map((doc, idx) => {
+                let formattedDate = 'Invalid Date';
+                if (doc.created_at) {
+                  const createdAt = new Date(doc.created_at);
+                  if (!isNaN(createdAt.getTime())) {
+                    formattedDate = createdAt.toLocaleDateString();
+                  }
+                }
+                return (
+                  <tr key={idx}>
+                    <td>{formattedDate}</td>
+                    <td>{doc.user}</td>
+                    <td>{doc.file}</td>
+                    <td>
+                      {doc.thumbnail_url ? (
+                        <img
+                          src={doc.thumbnail_url}
+                          alt="Document Thumbnail"
+                          className={styles.thumbnail}
+                        />
+                      ) : (
+                        'No Preview'
+                      )}
+                    </td>
+                    <td>{doc.ocr ? 'Processed' : 'Not Processed'}</td>
+                    <td>{doc.is_active ? 'Active' : 'Inactive'}</td> {/* Display Active Status */}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
+
       </section>
     </div>
   );
