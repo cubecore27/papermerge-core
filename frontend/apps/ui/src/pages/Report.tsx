@@ -17,70 +17,48 @@ import {
 } from 'lucide-react';
 
 // Redux & API
+import { useAppSelector } from '@/app/hooks';
 import { useGetUsersQuery } from '@/features/users/apiSlice';
+import { selectCurrentUser } from '@/slices/currentUser';
 import DoughnutChart from '@/components/Charts/Doughnut';
-import { getDefaultHeaders, getBaseURL } from '@/utils';
+import { getDefaultHeaders } from '@/utils';
 
 export default function Report() {
   // Fetch all users
   const { data: users, isLoading: usersLoading, error: usersError } = useGetUsersQuery();
+  const currentUser = useAppSelector(selectCurrentUser);
 
   // State for all documents
   const [allDocs, setAllDocs] = useState<any[]>([]);
   const [docsLoading, setDocsLoading] = useState(true);
   const [docsError, setDocsError] = useState<null | string>(null);
-  // New state for storage size
   const [storageSize, setStorageSize] = useState<number | null>(null);
   const [loadingStorage, setLoadingStorage] = useState(true);
 
-  // Dynamically fetch the base URL
-  const baseURL = getBaseURL(true);
-
+  // Fetch all documents for all users
   useEffect(() => {
-    const fetchAllDocs = async () => {
-      if (!users) return;
-      setDocsLoading(true);
-      setDocsError(null);
-      try {
-        const headers = getDefaultHeaders(); // Use headers with JWT token
-        const results = await Promise.all(
-          users.map(async (user: any) => {
-            if (!user.home_folder_id) {
-              console.warn(`User ${user.username} has no home_folder_id`);
-              return [];
-            }
-            const url = `${baseURL}/api/nodes/${user.home_folder_id}?page_number=1&page_size=1000&order_by=title`;
-            console.log(`Fetching: ${url}`);
-            try {
-              const res = await fetch(url, {
-                credentials: "include",
-                headers // Apply headers here
-              });
-              if (!res.ok) {
-                const errText = await res.text();
-                const msg = `Failed to fetch for ${user.username} (${user.id}): status ${res.status} - ${errText}`;
-                console.error(msg);
-                throw new Error(msg);
-              }
-              const data = await res.json();
-              return (data.items || []).map((doc: any) => ({ ...doc, _user: user }));
-            } catch (err) {
-              const msg = `Exception for user ${user.username} (${user.id}): ${err}`;
-              console.error(msg);
-              throw new Error(msg);
-            }
-          })
-        );
-        setAllDocs(results.flat());
-      } catch (e: any) {
-        console.error('Error fetching documents:', e);
-        setDocsError(e?.message || String(e));
-      } finally {
-        setDocsLoading(false);
-      }
-    };
-    if (users) fetchAllDocs();
-  }, [users, baseURL]);
+    if (!users) return;
+    setDocsLoading(true);
+    setDocsError(null);
+    const headers = getDefaultHeaders();
+    Promise.all(
+      users.map(async (user: any) => {
+        if (!user.home_folder_id) return [];
+        const url = `http://127.0.0.1:8000/api/nodes/${user.home_folder_id}?page_number=1&page_size=1000&order_by=title`;
+        try {
+          const res = await fetch(url, { credentials: 'include', headers });
+          if (!res.ok) throw new Error('Failed to fetch docs');
+          const data = await res.json();
+          return (data.items || []).map((doc: any) => ({ ...doc, _user: user }));
+        } catch (err) {
+          return [];
+        }
+      })
+    )
+      .then(results => setAllDocs(results.flat()))
+      .catch(e => setDocsError(e?.message || String(e)))
+      .finally(() => setDocsLoading(false));
+  }, [users]);
 
   // === NEW: Fetch KPI Summary from API ===
   const [summaryData, setSummaryData] = useState<{
@@ -98,7 +76,7 @@ export default function Report() {
       try {
         setSummaryLoading(true);
         const headers = getDefaultHeaders(); // Use headers with JWT token
-        const res = await fetch(`${baseURL}/api/stats/summary`, {
+        const res = await fetch('http://127.0.0.1:8000/api/stats/summary', {
           method: 'GET',
           headers // Apply headers here
         });
@@ -114,30 +92,24 @@ export default function Report() {
     };
 
     fetchSummary();
-  }, [baseURL]);
+  }, []);
 
-  // Fetch storage size
+  // Fetch storage size (total for all docs)
   useEffect(() => {
-    const fetchStorageSize = async () => {
-      try {
-        setLoadingStorage(true);
-        const headers = getDefaultHeaders();
-        const res = await fetch(`${baseURL}/api/document-stats/total-size`, {
-          credentials: 'include',
-          headers
-        });
+    setLoadingStorage(true);
+    const headers = getDefaultHeaders();
+    fetch('http://127.0.0.1:8000/api/document-stats/total-size', {
+      credentials: 'include',
+      headers
+    })
+      .then(res => {
         if (!res.ok) throw new Error('Failed to fetch storage size');
-        const data = await res.json();
-        setStorageSize(data.total_size); // Assuming `total_size` is in bytes
-      } catch (err) {
-        setStorageSize(null);
-      } finally {
-        setLoadingStorage(false);
-      }
-    };
-
-    fetchStorageSize();
-  }, [baseURL]);
+        return res.json();
+      })
+      .then(data => setStorageSize(data.total_size))
+      .catch(() => setStorageSize(null))
+      .finally(() => setLoadingStorage(false));
+  }, []);
 
   // console.log('Summary state:', summaryData);
 
@@ -185,14 +157,6 @@ export default function Report() {
       color: '#F44336' // red
     }
   ];
-
-  // Populate Storage
-  const storageData = {
-    icon: <HardDrive />,
-    value: '-- GB',
-    label: 'Storage Used',
-    tooltip: 'Total storage space used by your documents'
-  };
 
   if (usersLoading || docsLoading) return <div className={styles.reportPage}>Loading report...</div>;
   if (usersError || docsError) {

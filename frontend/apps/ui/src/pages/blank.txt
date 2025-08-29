@@ -40,8 +40,12 @@ const Dashboard: React.FC = () => {
     const fetchUserDocuments = async () => {
       try {
         setLoadingDocuments(true);
+
+        // Initialize headers
+        const headers = getDefaultHeaders();
+
         const res = await fetch(
-          `http://127.0.0.1:8000/api/stats/user-documents/?user_id=${currentUser.id}`,
+          `http://127.0.0.1:8000/api/stats/user-documents`,
           {
             credentials: 'include',
             headers
@@ -49,8 +53,11 @@ const Dashboard: React.FC = () => {
         );
         if (!res.ok) throw new Error('Failed to fetch user documents');
         const data = await res.json();
-        // console.log('📄 User Documents:', data); 
-        setUserDocuments(data);
+
+        // Filter client-side by currentUser.id
+        const filteredDocs = data.filter(doc => doc.user_id === currentUser.id);
+
+        setUserDocuments(filteredDocs);
         setErrorDocuments(false);
       } catch (err) {
         console.error(err);
@@ -72,8 +79,12 @@ const Dashboard: React.FC = () => {
         );
         if (!res.ok) throw new Error('Failed to fetch activities');
         const data = await res.json();
-        // console.log('🧾 User Activities:', data);
-        setActivities(data);
+
+        const filteredActivities = data.filter(activity => activity.user_id === currentUser.id);
+
+        console.log('🧾 Filtered User Activities:', filteredActivities);
+        setActivities(filteredActivities);
+
       } catch (err) {
         console.error(err);
       }
@@ -86,19 +97,28 @@ const Dashboard: React.FC = () => {
     const fetchStorageSize = async () => {
       try {
         setLoadingStorage(true);
-        const res = await fetch('http://127.0.0.1:8000/api/document-stats/total-size', {
-          credentials: 'include',
-          headers
-        });
+
+        // Use the endpoint with user ID for filtering by current user
+        const res = await fetch(
+          `http://127.0.0.1:8000/api/document-stats/user-total-size/${currentUser.id}`,
+          {
+            credentials: 'include',
+            headers
+          }
+        );
+
         if (!res.ok) throw new Error('Failed to fetch storage size');
         const data = await res.json();
         setStorageSize(data.total_size);
       } catch (err) {
-        setStorageSize(null);
+        console.error(err);
+        setStorageSize(null); // Handle error by setting storage size to null
       } finally {
         setLoadingStorage(false);
       }
     };
+
+
     fetchStorageSize();
 
   }, [currentUser?.id]);
@@ -200,23 +220,24 @@ const Dashboard: React.FC = () => {
   ];
 
   // === Recent Activity ===
-  const recentActivity = activities.map((act, idx) => ({
-    // Use action for icon, fallback to Upload
-    icon: Upload,
-    text: act.action ? `${act.action.replace(/_/g, ' ')}` : 'Activity',
-    time: act.created_at ? new Date(act.created_at).toLocaleString() : '',
-    tooltip: act.activity_metadata ? JSON.stringify(act.activity_metadata) : '',
-    username: act.username || '',
-    node_id: act.node_id || '',
-  }));
-
-  // === System Health (placeholder, unchanged) ===
-  const systemHealth = [
-    { label: 'Storage Capacity', status: 'healthy', value: 67, tooltip: 'Current storage usage percentage' },
-    { label: 'OCR Service', status: 'healthy', icon: CheckCircle, tooltip: 'OCR service is operational' },
-    { label: 'Email Integration', status: 'warning', icon: AlertCircle, tooltip: 'There may be issues with email integration' },
-    { label: 'Failed Uploads', status: 'error', icon: XCircle, count: 3, tooltip: 'Number of failed uploads requiring attention' },
-  ];
+  // Sort activities from latest to oldest and show only the 5 most recent
+  const recentActivity = activities
+    .slice()
+    .sort((a, b) => {
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return bTime - aTime;
+    })
+    .slice(0, 5)
+    .map((act, idx) => ({
+      // Use action for icon, fallback to Upload
+      icon: Upload,
+      text: act.action ? `${act.action.replace(/_/g, ' ')}` : 'Activity',
+      time: act.created_at ? new Date(act.created_at).toLocaleString() : '',
+      tooltip: act.activity_metadata ? JSON.stringify(act.activity_metadata) : '',
+      username: act.username || '',
+      node_id: act.node_id || '',
+    }));
 
   return (
     <div className={styles.dashboard}>
@@ -249,6 +270,7 @@ const Dashboard: React.FC = () => {
 
       {/* Main Content */}
       <div className={styles.mainGrid}>
+        {/* Charts */}
         <div>
           <div className={styles.chartsGrid}>
             <div className={styles.chartCard} title="Breakdown of file types in your system">
@@ -307,7 +329,7 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Recent Activity & System Health */}
+      {/* Recent Activity */}
       <div className={styles.bottomGrid}>
         <div className={styles.card} title="Recent activity in your account">
           <h2 className={styles.sectionTitle}>Recent Activity</h2>
@@ -323,46 +345,6 @@ const Dashboard: React.FC = () => {
                 )}
               </div>
               <span className={styles.activityTime}>{activity.time}</span>
-            </div>
-          ))}
-        </div>
-        <div className={styles.card} title="Current system health status">
-          <h2 className={styles.sectionTitle}>System Health</h2>
-          {systemHealth.map((item, index) => (
-            <div key={index} className={styles.healthItem} title={item.tooltip}>
-              <span className={styles.healthLabel}>{item.label}</span>
-              <div className={`${styles.healthStatus} ${item.status === 'healthy' ? styles.statusGreen :
-                item.status === 'warning' ? styles.statusYellow :
-                  styles.statusRed
-                }`}
-              >
-                {item.icon && <item.icon size={12} aria-hidden="true" />}
-                {item.count && <span>{item.count}</span>}
-                {item.value !== undefined && (
-                  <div style={{ minWidth: '60px' }}>
-                    <div className={styles.progressBar}>
-                      <div
-                        className={styles.progressFill}
-                        style={{
-                          width: `${item.value}%`,
-                          backgroundColor:
-                            item.value > 80 ? '#dc2626' :
-                              item.value > 60 ? '#d97706' :
-                                '#059669'
-                        }}
-                      />
-                    </div>
-                    <span style={{ fontSize: '11px' }}>{item.value}%</span>
-                  </div>
-                )}
-                {!item.count && item.value === undefined && (
-                  <span>
-                    {item.status === 'healthy' ? 'Online' :
-                      item.status === 'warning' ? 'Warning' :
-                        'Error'}
-                  </span>
-                )}
-              </div>
             </div>
           ))}
         </div>
