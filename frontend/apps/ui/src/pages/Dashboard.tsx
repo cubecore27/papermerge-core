@@ -45,7 +45,7 @@ const Dashboard: React.FC = () => {
         const headers = getDefaultHeaders();
 
         const res = await fetch(
-          `http://127.0.0.1:8000/api/stats/user-documents`,
+          `http://localhost:8000/api/stats/user-documents`,
           {
             credentials: 'include',
             headers
@@ -71,7 +71,7 @@ const Dashboard: React.FC = () => {
     const fetchActivities = async () => {
       try {
         const res = await fetch(
-          'http://127.0.0.1:8000/api/stats/all-activities',
+          'http://localhost:8000/api/stats/all-activities',
           {
             credentials: 'include',
             headers
@@ -100,7 +100,7 @@ const Dashboard: React.FC = () => {
 
         // Use the endpoint with user ID for filtering by current user
         const res = await fetch(
-          `http://127.0.0.1:8000/api/document-stats/user-total-size/${currentUser.id}`,
+          `http://localhost:8000/api/document-stats/user-total-size/${currentUser.id}`,
           {
             credentials: 'include',
             headers
