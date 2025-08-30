@@ -19,7 +19,7 @@ import { selectCurrentUser } from '@/slices/currentUser';
 import DoughnutChart from '@/components/Charts/Doughnut';
 import PieChart from '@/components/Charts/PieChart';
 import BarChart from '@/components/Charts/Bar';
-import { getDefaultHeaders } from '@/utils';
+import { getBaseURL, getDefaultHeaders } from '@/utils';
 
 export default function Report() {
   // Fetch all users
@@ -49,15 +49,15 @@ export default function Report() {
   // Fetch all documents for all users
   useEffect(() => {
     if (!users) return;
-    // LOG
-    // console.log('Fetched users:', users);
     setDocsLoading(true);
     setDocsError(null);
     const headers = getDefaultHeaders();
+    const baseUrl = getBaseURL(true); // Get the base URL and trim trailing slash
+
     Promise.all(
       users.map(async (user: any) => {
         if (!user.home_folder_id) return [];
-        const url = `http://127.0.0.1:8000/api/nodes/${user.home_folder_id}?page_number=1&page_size=1000&order_by=title`;
+        const url = `${baseUrl}/api/nodes/${user.home_folder_id}?page_number=1&page_size=1000&order_by=title`;
         try {
           const res = await fetch(url, { credentials: 'include', headers });
           if (!res.ok) throw new Error('Failed to fetch docs');
@@ -97,7 +97,8 @@ export default function Report() {
       try {
         setSummaryLoading(true);
         const headers = getDefaultHeaders(); // Use headers with JWT token
-        const res = await fetch('http://127.0.0.1:8000/api/stats/summary', {
+        const baseUrl = getBaseURL(true); // Dynamically get the base URL
+        const res = await fetch(`${baseUrl}/api/stats/summary`, {
           method: 'GET',
           headers // Apply headers here
         });
@@ -121,7 +122,9 @@ export default function Report() {
   useEffect(() => {
     setLoadingStorage(true);
     const headers = getDefaultHeaders();
-    fetch('http://127.0.0.1:8000/api/document-stats/total-size', {
+    const baseUrl = getBaseURL(true);
+
+    fetch(`${baseUrl}/api/document-stats/total-size`, {
       credentials: 'include',
       headers
     })
@@ -202,8 +205,11 @@ export default function Report() {
   useEffect(() => {
     setTagsLoading(true);
     setTagsError(null);
-    fetch('http://127.0.0.1:8000/api/stats/stats/tags-by-group', { // use full URL
-      headers: getDefaultHeaders(),
+    const headers = getDefaultHeaders();
+    const baseUrl = getBaseURL(true);
+
+    fetch(`${baseUrl}/api/stats/stats/tags-by-group`, {
+      headers,
       credentials: 'include'
     })
       .then(res => {
@@ -219,8 +225,11 @@ export default function Report() {
   useEffect(() => {
     setSummary2Loading(true);
     setSummary2Error(null);
-    fetch('http://127.0.0.1:8000/api/stats/stats/summary', { // use full URL
-      headers: getDefaultHeaders(),
+    const headers = getDefaultHeaders();
+    const baseUrl = getBaseURL(true);
+
+    fetch(`${baseUrl}/api/stats/stats/summary`, {
+      headers,
       credentials: 'include'
     })
       .then(res => {
@@ -236,8 +245,11 @@ export default function Report() {
   useEffect(() => {
     setAdvancedStatsLoading(true);
     setAdvancedStatsError(null);
-    fetch('http://127.0.0.1:8000/api/stats/stats/advanced-summary', { // use full URL
-      headers: getDefaultHeaders(),
+    const headers = getDefaultHeaders();
+    const baseUrl = getBaseURL(true);
+
+    fetch(`${baseUrl}/api/stats/stats/advanced-summary`, {
+      headers,
       credentials: 'include'
     })
       .then(res => {
@@ -361,10 +373,20 @@ export default function Report() {
                     <div className={styles.sharedDocsList}>
                       {summary2.shared_documents.slice(0, 5).map((doc: any) => (
                         <div key={doc.node_id} className={styles.sharedDocItem}>
-                          <span className={styles.docId}>{doc.node_id}</span>
-                          <span className={styles.sharedWith}>
-                            shared with {doc.shared_with_user || doc.shared_with_group || 'N/A'}
-                          </span>
+                          <div className={styles.sharedDocMain}>
+                            <span className={styles.docIcon} title={doc.is_folder ? 'Folder' : 'File'}>
+                              {doc.is_folder ? '📁' : '📄'}
+                            </span>
+                            <span className={styles.docName} title={doc.file_name || 'Unnamed'}>
+                              {doc.file_name || 'Unnamed'}
+                            </span>
+                            <span className={styles.sharedWith}>
+                              shared with {doc.shared_with_user || doc.shared_with_group || 'N/A'}
+                            </span>
+                          </div>
+                          <div className={styles.sharedBy}>
+                            by {doc.shared_by_user || 'Unknown'}
+                          </div>
                         </div>
                       ))}
                       {summary2.shared_documents.length > 5 && (
@@ -409,11 +431,16 @@ export default function Report() {
                 <h3 className={styles.cardTitle} title="Storage by User">Storage by User</h3>
                 <div className={styles.cardContent}>
                   {advancedStats.per_user && advancedStats.per_user.length > 0 ? (
-                    <BarChart
+                    <PieChart
                       labels={advancedStats.per_user.map((u: any) => u.username)}
-                      dataPoints={advancedStats.per_user.map((u: any) => Number((u.total_bytes / 1024 / 1024).toFixed(2)))}
+                      dataPoints={advancedStats.per_user.map((u: any) =>
+                        Number((u.total_bytes / 1024 / 1024).toFixed(2))
+                      )}
+                      chartTitle="Storage by User (in MB)"
                     />
-                  ) : <div className={styles.noDataMessage}>No per user data</div>}
+                  ) : (
+                    <div className={styles.noDataMessage}>No per user data</div>
+                  )}
                 </div>
               </div>
 

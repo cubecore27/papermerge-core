@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getDefaultHeaders } from '@/utils';
+import { getBaseURL, getDefaultHeaders } from '@/utils';
 
 import { useNavigate } from 'react-router-dom';
 import {
@@ -35,17 +35,15 @@ const Dashboard: React.FC = () => {
     if (!currentUser?.id) return;
 
     const headers = getDefaultHeaders();
+    const baseUrl = getBaseURL(true); // Get the base URL dynamically
 
     // Fetch Documents
     const fetchUserDocuments = async () => {
       try {
         setLoadingDocuments(true);
 
-        // Initialize headers
-        const headers = getDefaultHeaders();
-
         const res = await fetch(
-          `http://127.0.0.1:8000/api/stats/user-documents`,
+          `${baseUrl}/api/stats/user-documents`,
           {
             credentials: 'include',
             headers
@@ -71,7 +69,7 @@ const Dashboard: React.FC = () => {
     const fetchActivities = async () => {
       try {
         const res = await fetch(
-          'http://127.0.0.1:8000/api/stats/all-activities',
+          `${baseUrl}/api/stats/all-activities`,
           {
             credentials: 'include',
             headers
@@ -98,9 +96,8 @@ const Dashboard: React.FC = () => {
       try {
         setLoadingStorage(true);
 
-        // Use the endpoint with user ID for filtering by current user
         const res = await fetch(
-          `http://127.0.0.1:8000/api/document-stats/user-total-size/${currentUser.id}`,
+          `${baseUrl}/api/document-stats/user-total-size/${currentUser.id}`,
           {
             credentials: 'include',
             headers

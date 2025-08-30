@@ -174,11 +174,16 @@ async def get_stats_summary(
         (SELECT json_agg(sd) AS shared_documents
          FROM (
              SELECT sn.node_id,
+                    n.title AS file_name,
+                    (n.ctype = 'folder') AS is_folder,  -- Use ctype to determine if it's a folder
                     sn.user_id AS shared_with_user,
                     g.name AS shared_with_group,
+                    u.username AS shared_by_user,  -- Include the username of the user who shared the document
                     COUNT(*) OVER (PARTITION BY sn.node_id) AS share_count
              FROM shared_nodes sn
+             LEFT JOIN nodes n ON sn.node_id = n.id
              LEFT JOIN groups g ON sn.group_id = g.id
+             LEFT JOIN users u ON sn.owner_id = u.id  -- Join to get the username of the owner
          ) sd) sd
     CROSS JOIN
         -- Roles summary
